@@ -1,16 +1,47 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { ChevronRight, Target, XCircle, TrendingUp } from 'lucide-react'
 import { mockPRD } from '../mockData'
+import { ListToolbar } from '../components/ListToolbar'
+import { Pagination } from '../components/Pagination'
 
 export function PRDView() {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({
-    goals: true,
-    nonGoals: false,
-    metrics: true,
-    stories: true,
+    goals: true, nonGoals: false, metrics: true, stories: true,
   })
+  const [storySearch, setStorySearch] = useState('')
+  const [storyFilters, setStoryFilters] = useState<string[]>([])
+  const [storyPage, setStoryPage] = useState(1)
+  const storyPageSize = 10
 
   const toggle = (key: string) => setExpanded(prev => ({ ...prev, [key]: !prev[key] }))
+
+  const allStories = mockPRD.stories
+
+  const filteredStories = useMemo(() => {
+    let items = [...allStories]
+    if (storySearch) {
+      const q = storySearch.toLowerCase()
+      items = items.filter(s => s.title.toLowerCase().includes(q) || s.id.toLowerCase().includes(q))
+    }
+    if (storyFilters.length > 0) {
+      items = items.filter(s => storyFilters.includes(s.status) || storyFilters.includes(s.priority))
+    }
+    return items
+  }, [allStories, storySearch, storyFilters])
+
+  const pagedStories = filteredStories.slice((storyPage - 1) * storyPageSize, storyPage * storyPageSize)
+
+  const toggleStoryFilter = (v: string) => {
+    setStoryFilters(prev => prev.includes(v) ? prev.filter(f => f !== v) : [...prev, v])
+    setStoryPage(1)
+  }
+
+  const statusCounts = {
+    draft: allStories.filter(s => s.status === 'draft').length,
+    ready: allStories.filter(s => s.status === 'ready').length,
+    'in-progress': allStories.filter(s => s.status === 'in-progress').length,
+    done: allStories.filter(s => s.status === 'done').length,
+  }
 
   return (
     <div>
@@ -19,7 +50,6 @@ export function PRDView() {
         <p style={{ color: 'var(--text-secondary)', lineHeight: 1.7 }}>{mockPRD.problem}</p>
       </div>
 
-      {/* Goals */}
       <div className="card">
         <div className="card-header" onClick={() => toggle('goals')}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -33,15 +63,13 @@ export function PRDView() {
           <div className="card-body">
             {mockPRD.goals.map((g, i) => (
               <div key={i} className="list-item">
-                <span className="list-bullet" style={{ background: 'var(--green)' }} />
-                {g}
+                <span className="list-bullet" style={{ background: 'var(--green)' }} />{g}
               </div>
             ))}
           </div>
         )}
       </div>
 
-      {/* Non-Goals */}
       <div className="card">
         <div className="card-header" onClick={() => toggle('nonGoals')}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -55,15 +83,13 @@ export function PRDView() {
           <div className="card-body">
             {mockPRD.nonGoals.map((g, i) => (
               <div key={i} className="list-item">
-                <span className="list-bullet" style={{ background: 'var(--text-muted)' }} />
-                {g}
+                <span className="list-bullet" style={{ background: 'var(--text-muted)' }} />{g}
               </div>
             ))}
           </div>
         )}
       </div>
 
-      {/* Success Metrics */}
       <div className="card">
         <div className="card-header" onClick={() => toggle('metrics')}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -77,25 +103,39 @@ export function PRDView() {
           <div className="card-body">
             {mockPRD.successMetrics.map((m, i) => (
               <div key={i} className="list-item">
-                <span className="list-bullet" style={{ background: 'var(--cyan)' }} />
-                {m}
+                <span className="list-bullet" style={{ background: 'var(--cyan)' }} />{m}
               </div>
             ))}
           </div>
         )}
       </div>
 
-      {/* Stories summary */}
+      {/* Stories section with search/filter */}
       <div className="card">
         <div className="card-header" onClick={() => toggle('stories')}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <h3>Stories</h3>
-            <span className="tag tag-in-progress">{mockPRD.stories.length}</span>
+            <span className="tag tag-in-progress">{allStories.length}</span>
           </div>
           <ChevronRight size={16} className={`expand-icon ${expanded.stories ? 'expanded' : ''}`} />
         </div>
         {expanded.stories && (
           <div className="card-body">
+            <ListToolbar
+              search={storySearch}
+              onSearchChange={v => { setStorySearch(v); setStoryPage(1) }}
+              filters={[
+                { label: 'In Progress', value: 'in-progress', count: statusCounts['in-progress'], color: 'var(--accent)' },
+                { label: 'Ready', value: 'ready', count: statusCounts.ready, color: 'var(--cyan)' },
+                { label: 'Draft', value: 'draft', count: statusCounts.draft },
+                { label: 'Done', value: 'done', count: statusCounts.done, color: 'var(--green)' },
+              ]}
+              activeFilters={storyFilters}
+              onFilterToggle={toggleStoryFilter}
+              totalCount={allStories.length}
+              filteredCount={filteredStories.length}
+              placeholder="Search stories..."
+            />
             <table className="data-table">
               <thead>
                 <tr>
@@ -108,7 +148,7 @@ export function PRDView() {
                 </tr>
               </thead>
               <tbody>
-                {mockPRD.stories.map(story => (
+                {pagedStories.map(story => (
                   <tr key={story.id}>
                     <td className="mono">{story.id}</td>
                     <td style={{ color: 'var(--text-primary)' }}>{story.title}</td>
@@ -120,6 +160,13 @@ export function PRDView() {
                 ))}
               </tbody>
             </table>
+            <Pagination
+              currentPage={storyPage}
+              totalPages={Math.ceil(filteredStories.length / storyPageSize)}
+              pageSize={storyPageSize}
+              totalItems={filteredStories.length}
+              onPageChange={setStoryPage}
+            />
           </div>
         )}
       </div>

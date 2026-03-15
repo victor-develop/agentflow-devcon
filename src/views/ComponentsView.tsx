@@ -1,19 +1,59 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { ChevronRight } from 'lucide-react'
 import { mockPRD } from '../mockData'
+import { ListToolbar, type ViewMode } from '../components/ListToolbar'
+import { Pagination } from '../components/Pagination'
 
 export function ComponentsView() {
-  const allComponents = mockPRD.stories.flatMap(s =>
-    s.designComponents.map(dc => ({ ...dc, storyId: s.id, storyTitle: s.title }))
+  const allComponents = useMemo(() =>
+    mockPRD.stories.flatMap(s =>
+      s.designComponents.map(dc => ({ ...dc, storyId: s.id, storyTitle: s.title }))
+    ), []
   )
 
-  const [expanded, setExpanded] = useState<Record<string, boolean>>({ 'DC-001': true })
+  const [search, setSearch] = useState('')
+  const [activeFilters, setActiveFilters] = useState<string[]>([])
+  const [viewMode, setViewMode] = useState<ViewMode>('expanded')
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({})
 
-  const byType = {
-    page: allComponents.filter(c => c.type === 'page'),
-    component: allComponents.filter(c => c.type === 'component'),
-    pattern: allComponents.filter(c => c.type === 'pattern'),
+  const toggleFilter = (v: string) => {
+    setActiveFilters(prev => prev.includes(v) ? prev.filter(f => f !== v) : [...prev, v])
+    setPage(1)
   }
+
+  const filtered = useMemo(() => {
+    let items = [...allComponents]
+    if (search) {
+      const q = search.toLowerCase()
+      items = items.filter(c =>
+        c.name.toLowerCase().includes(q) || c.storyId.toLowerCase().includes(q) || c.storyTitle.toLowerCase().includes(q)
+      )
+    }
+    if (activeFilters.length > 0) {
+      items = items.filter(c => activeFilters.includes(c.status) || activeFilters.includes(c.type))
+    }
+    return items
+  }, [allComponents, search, activeFilters])
+
+  const paged = filtered.slice((page - 1) * pageSize, page * pageSize)
+
+  const typeCounts = { page: 0, component: 0, pattern: 0 }
+  const statusCounts = { draft: 0, ready: 0, implemented: 0 }
+  allComponents.forEach(c => {
+    typeCounts[c.type]++
+    statusCounts[c.status]++
+  })
+
+  const filters = [
+    { label: 'Page', value: 'page', count: typeCounts.page, color: 'var(--accent)' },
+    { label: 'Component', value: 'component', count: typeCounts.component, color: 'var(--cyan)' },
+    { label: 'Pattern', value: 'pattern', count: typeCounts.pattern, color: 'var(--purple)' },
+    { label: 'Implemented', value: 'implemented', count: statusCounts.implemented, color: 'var(--green)' },
+    { label: 'Ready', value: 'ready', count: statusCounts.ready, color: 'var(--cyan)' },
+    { label: 'Draft', value: 'draft', count: statusCounts.draft },
+  ]
 
   return (
     <div>
@@ -23,61 +63,95 @@ export function ComponentsView() {
           <div className="stat-label">Total Components</div>
         </div>
         <div className="stat-card">
-          <div className="stat-value" style={{ color: 'var(--green)' }}>
-            {allComponents.filter(c => c.status === 'implemented').length}
-          </div>
+          <div className="stat-value" style={{ color: 'var(--green)' }}>{statusCounts.implemented}</div>
           <div className="stat-label">Implemented</div>
         </div>
         <div className="stat-card">
-          <div className="stat-value" style={{ color: 'var(--cyan)' }}>
-            {allComponents.filter(c => c.status === 'ready').length}
-          </div>
+          <div className="stat-value" style={{ color: 'var(--cyan)' }}>{statusCounts.ready}</div>
           <div className="stat-label">Ready</div>
         </div>
         <div className="stat-card">
-          <div className="stat-value" style={{ color: 'var(--text-muted)' }}>
-            {allComponents.filter(c => c.status === 'draft').length}
-          </div>
+          <div className="stat-value" style={{ color: 'var(--text-muted)' }}>{statusCounts.draft}</div>
           <div className="stat-label">Draft</div>
         </div>
       </div>
 
-      {(Object.entries(byType) as [string, typeof allComponents][]).map(([type, comps]) => (
-        comps.length > 0 && (
-          <div key={type}>
-            <div className="section-title" style={{ textTransform: 'capitalize' }}>{type}s</div>
-            {comps.map(c => (
-              <div key={c.id} className="card">
-                <div className="card-header" onClick={() => setExpanded(p => ({ ...p, [c.id]: !p[c.id] }))}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <ChevronRight size={14} className={`expand-icon ${expanded[c.id] ? 'expanded' : ''}`} />
-                    <span className={`type-badge type-${c.type}`}>{c.type}</span>
-                    <h3>{c.name}</h3>
-                  </div>
-                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                    <span className="mono" style={{ fontSize: 11, color: 'var(--text-muted)' }}>{c.storyId}</span>
-                    <span className={`tag tag-${c.status}`}>{c.status}</span>
-                  </div>
-                </div>
-                {expanded[c.id] && (
-                  <div className="card-body">
-                    <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 8 }}>
-                      Story: <span style={{ color: 'var(--text-primary)' }}>{c.storyTitle}</span>
-                    </div>
-                    <div style={{
-                      padding: 32, borderRadius: 8, background: 'var(--bg-tertiary)',
-                      border: '1px dashed var(--border)', textAlign: 'center',
-                      color: 'var(--text-muted)', fontSize: 13,
-                    }}>
-                      Component preview will render here from design specs
-                    </div>
-                  </div>
-                )}
+      <ListToolbar
+        search={search}
+        onSearchChange={v => { setSearch(v); setPage(1) }}
+        filters={filters}
+        activeFilters={activeFilters}
+        onFilterToggle={toggleFilter}
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
+        totalCount={allComponents.length}
+        filteredCount={filtered.length}
+        placeholder="Search components..."
+      />
+
+      {viewMode === 'compact' ? (
+        <div className="card">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Type</th>
+                <th>Story</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {paged.map(c => (
+                <tr key={c.id}>
+                  <td className="mono" style={{ color: 'var(--text-primary)' }}>{c.name}</td>
+                  <td><span className={`type-badge type-${c.type}`}>{c.type}</span></td>
+                  <td className="mono" style={{ fontSize: 11 }}>{c.storyId}</td>
+                  <td><span className={`tag tag-${c.status}`}>{c.status}</span></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        paged.map(c => (
+          <div key={c.id} className="card">
+            <div className="card-header" onClick={() => setExpanded(p => ({ ...p, [c.id]: !p[c.id] }))}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <ChevronRight size={14} className={`expand-icon ${expanded[c.id] ? 'expanded' : ''}`} />
+                <span className={`type-badge type-${c.type}`}>{c.type}</span>
+                <h3>{c.name}</h3>
               </div>
-            ))}
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <span className="mono" style={{ fontSize: 11, color: 'var(--text-muted)' }}>{c.storyId}</span>
+                <span className={`tag tag-${c.status}`}>{c.status}</span>
+              </div>
+            </div>
+            {expanded[c.id] && (
+              <div className="card-body">
+                <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 8 }}>
+                  Story: <span style={{ color: 'var(--text-primary)' }}>{c.storyTitle}</span>
+                </div>
+                <div style={{
+                  padding: 32, borderRadius: 8, background: 'var(--bg-tertiary)',
+                  border: '1px dashed var(--border)', textAlign: 'center',
+                  color: 'var(--text-muted)', fontSize: 13,
+                }}>
+                  Component preview placeholder
+                </div>
+              </div>
+            )}
           </div>
-        )
-      ))}
+        ))
+      )}
+
+      <Pagination
+        currentPage={page}
+        totalPages={Math.ceil(filtered.length / pageSize)}
+        pageSize={pageSize}
+        totalItems={filtered.length}
+        onPageChange={setPage}
+        onPageSizeChange={s => { setPageSize(s); setPage(1) }}
+      />
     </div>
   )
 }
