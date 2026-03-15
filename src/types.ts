@@ -63,11 +63,29 @@ export interface ApiContract {
   storyId: string
 }
 
-export interface PRD {
+export interface Problem {
+  id: string
   title: string
+  status: 'draft' | 'validated' | 'rejected' | 'active'
+  severity: 'critical' | 'major' | 'minor'
+  statement: string
+  hypothesis: string
+  evidence: string[]
+  metrics: { label: string; value: string; color?: string }[]
+  prdIds: string[]
+  createdAt: string
+}
+
+export interface PRD {
+  id: string
+  title: string
+  status: 'draft' | 'review' | 'approved' | 'archived'
+  problemId: string
   problem: string
   goals: string[]
   nonGoals: string[]
   successMetrics: string[]
   stories: Story[]
+  createdAt: string
+  updatedAt: string
 }
