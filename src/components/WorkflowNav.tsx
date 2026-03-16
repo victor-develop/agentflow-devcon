@@ -5,6 +5,7 @@ interface Props {
   steps: WorkflowStep[]
   activeStep: WorkflowStepId
   onStepClick: (id: WorkflowStepId) => void
+  onHomeClick: () => void
 }
 
 const phaseColors: Record<string, string> = {
@@ -14,10 +15,10 @@ const phaseColors: Record<string, string> = {
   verify: 'var(--green)',
 }
 
-export function WorkflowNav({ steps, activeStep, onStepClick }: Props) {
+export function WorkflowNav({ steps, activeStep, onStepClick, onHomeClick }: Props) {
   return (
     <nav className="workflow-nav">
-      <div className="nav-brand">
+      <div className="nav-brand" onClick={onHomeClick} style={{ cursor: 'pointer' }} title="Back to Home">
         <Zap size={18} className="brand-icon" />
         <span className="brand-text">AgentFlow</span>
         <span className="brand-badge">DevCon</span>

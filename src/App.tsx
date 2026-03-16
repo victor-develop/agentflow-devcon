@@ -70,6 +70,7 @@ export default function App() {
           steps={workflowSteps}
           activeStep={activeStep}
           onStepClick={setActiveStep}
+          onHomeClick={() => setActiveStep(null)}
         />
         <div className="app-body">
           <Sidebar
