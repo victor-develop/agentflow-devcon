@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import {
   ReactFlow,
+  MarkerType,
   type Node,
   type Edge,
   type NodeTypes,
@@ -132,9 +133,9 @@ export function StepSelector({ onSelect }: Props) {
   }, [onSelect])
 
   const edges: Edge[] = useMemo(() => [
-    { id: 'e1', source: 'define', target: 'design', type: 'default', animated: true, style: { stroke: '#06b6d4', strokeWidth: 2 } },
-    { id: 'e2', source: 'design', target: 'develop', type: 'default', animated: true, style: { stroke: '#a855f7', strokeWidth: 2 } },
-    { id: 'e3', source: 'develop', target: 'verify', type: 'default', animated: true, style: { stroke: '#f59e0b', strokeWidth: 2 } },
+    { id: 'e1', source: 'define', target: 'design', type: 'default', animated: true, style: { stroke: '#06b6d4', strokeWidth: 2 }, markerEnd: { type: MarkerType.ArrowClosed, color: '#06b6d4', width: 20, height: 20 } },
+    { id: 'e2', source: 'design', target: 'develop', type: 'default', animated: true, style: { stroke: '#a855f7', strokeWidth: 2 }, markerEnd: { type: MarkerType.ArrowClosed, color: '#a855f7', width: 20, height: 20 } },
+    { id: 'e3', source: 'develop', target: 'verify', type: 'default', animated: true, style: { stroke: '#f59e0b', strokeWidth: 2 }, markerEnd: { type: MarkerType.ArrowClosed, color: '#f59e0b', width: 20, height: 20 } },
   ], [])
 
   return (
