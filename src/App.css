@@ -205,6 +205,26 @@
 .protocol-rest { background: var(--cyan-bg, rgba(34,211,238,0.1)); color: var(--cyan); }
 .protocol-graphql { background: rgba(236,72,153,0.1); color: #ec4899; }
 
+.contract-code {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  line-height: 1.5;
+  padding: 14px 16px;
+  border-radius: 8px;
+  background: #0d0d1a;
+  border: 1px solid var(--border);
+  overflow-x: auto;
+  color: var(--text-secondary);
+  white-space: pre;
+  margin: 0;
+}
+.contract-code.graphql {
+  color: #c4b5fd;
+}
+.contract-code.json {
+  color: #86efac;
+}
+
 .expand-icon {
   color: var(--text-muted);
   transition: transform 0.2s;

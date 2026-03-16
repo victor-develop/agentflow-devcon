@@ -153,9 +153,34 @@ export function ContractsView() {
                 <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 8 }}>
                   {contract.description}
                 </div>
-                <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: showHistory[contract.id] ? 16 : 0 }}>
+                <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12 }}>
                   Story: <span className="mono">{contract.storyId}</span> — {storyMap[contract.storyId] || 'Unknown'}
                 </div>
+
+                {/* GraphQL Schema */}
+                {contract.schema && (
+                  <div style={{ marginBottom: 12 }}>
+                    <div className="section-title" style={{ color: '#ec4899' }}>Schema</div>
+                    <pre className="contract-code graphql">{contract.schema}</pre>
+                  </div>
+                )}
+
+                {/* REST Request Body */}
+                {contract.requestBody && (
+                  <div style={{ marginBottom: 12 }}>
+                    <div className="section-title">Request Body</div>
+                    <pre className="contract-code json">{contract.requestBody}</pre>
+                  </div>
+                )}
+
+                {/* REST Response Body */}
+                {contract.responseBody && (
+                  <div style={{ marginBottom: 12 }}>
+                    <div className="section-title">Response Body</div>
+                    <pre className="contract-code json">{contract.responseBody}</pre>
+                  </div>
+                )}
+
                 {showHistory[contract.id] && (
                   <div>
                     <div className="section-title">Commit History</div>

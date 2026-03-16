@@ -62,6 +62,11 @@ export interface ApiContract {
   description: string
   status: 'draft' | 'agreed' | 'implemented'
   storyId: string
+  // REST payloads
+  requestBody?: string
+  responseBody?: string
+  // GraphQL schema
+  schema?: string
 }
 
 export interface Problem {

@@ -618,14 +618,58 @@ export const mockPRD = mockPRDs[0]
 
 export const mockContracts: ApiContract[] = [
   // ── REST ──
-  { id: 'API-001', protocol: 'rest', method: 'GET', endpoint: '/api/v1/preferences', description: 'Fetch user notification preferences', status: 'implemented', storyId: 'STORY-001' },
-  { id: 'API-002', protocol: 'rest', method: 'PUT', endpoint: '/api/v1/preferences', description: 'Update user notification preferences', status: 'implemented', storyId: 'STORY-001' },
-  { id: 'API-003', protocol: 'rest', method: 'GET', endpoint: '/api/v1/preferences/channels', description: 'List available channels and their configs', status: 'implemented', storyId: 'STORY-002' },
-  { id: 'API-004', protocol: 'rest', method: 'PUT', endpoint: '/api/v1/preferences/channels/:id', description: 'Update channel-specific settings', status: 'agreed', storyId: 'STORY-002' },
-  { id: 'API-005', protocol: 'rest', method: 'POST', endpoint: '/api/v1/preferences/import', description: 'Import preferences from JSON', status: 'agreed', storyId: 'STORY-003' },
+  { id: 'API-001', protocol: 'rest', method: 'GET', endpoint: '/api/v1/preferences', description: 'Fetch user notification preferences', status: 'implemented', storyId: 'STORY-001',
+    responseBody: `{
+  "userId": "usr_abc123",
+  "channels": {
+    "email": { "enabled": true, "address": "user@co.com" },
+    "push": { "enabled": true, "tokens": ["tok_..."] },
+    "slack": { "enabled": false },
+    "sms": { "enabled": false }
+  },
+  "quietHours": { "from": "22:00", "to": "08:00", "timezone": "UTC" },
+  "priorityOverrides": { "critical": ["push", "email", "slack"] }
+}` },
+  { id: 'API-002', protocol: 'rest', method: 'PUT', endpoint: '/api/v1/preferences', description: 'Update user notification preferences', status: 'implemented', storyId: 'STORY-001',
+    requestBody: `{
+  "channels": { "slack": { "enabled": true, "workspace": "T0123" } },
+  "quietHours": { "from": "23:00", "to": "07:00" }
+}`,
+    responseBody: `{ "ok": true, "updated": ["channels.slack", "quietHours"] }` },
+  { id: 'API-003', protocol: 'rest', method: 'GET', endpoint: '/api/v1/preferences/channels', description: 'List available channels and their configs', status: 'implemented', storyId: 'STORY-002',
+    responseBody: `[
+  { "id": "email", "name": "Email", "enabled": true, "configurable": true },
+  { "id": "push", "name": "Push", "enabled": true, "configurable": true },
+  { "id": "slack", "name": "Slack", "enabled": false, "requiresOAuth": true },
+  { "id": "sms", "name": "SMS", "enabled": false, "requiresVerification": true }
+]` },
+  { id: 'API-004', protocol: 'rest', method: 'PUT', endpoint: '/api/v1/preferences/channels/:id', description: 'Update channel-specific settings', status: 'agreed', storyId: 'STORY-002',
+    requestBody: `{ "enabled": true, "digestFrequency": "daily", "format": "html" }` },
+  { id: 'API-005', protocol: 'rest', method: 'POST', endpoint: '/api/v1/preferences/import', description: 'Import preferences from JSON', status: 'agreed', storyId: 'STORY-003',
+    requestBody: `{ "preferences": { /* full preferences JSON */ }, "merge": true }` },
   { id: 'API-006', protocol: 'rest', method: 'GET', endpoint: '/api/v1/preferences/export', description: 'Export preferences as JSON', status: 'agreed', storyId: 'STORY-003' },
-  { id: 'API-007', protocol: 'rest', method: 'GET', endpoint: '/api/v1/routing/rules', description: 'List routing rules', status: 'agreed', storyId: 'STORY-004' },
-  { id: 'API-008', protocol: 'rest', method: 'POST', endpoint: '/api/v1/routing/rules', description: 'Create a routing rule', status: 'agreed', storyId: 'STORY-004' },
+  { id: 'API-007', protocol: 'rest', method: 'GET', endpoint: '/api/v1/routing/rules', description: 'List routing rules', status: 'agreed', storyId: 'STORY-004',
+    responseBody: `{
+  "rules": [
+    {
+      "id": "rule_001",
+      "name": "Critical to all channels",
+      "priority": 1,
+      "conditions": [{ "field": "priority", "op": "eq", "value": "critical" }],
+      "actions": [{ "type": "route", "channels": ["push", "email", "slack"] }]
+    }
+  ],
+  "total": 12
+}` },
+  { id: 'API-008', protocol: 'rest', method: 'POST', endpoint: '/api/v1/routing/rules', description: 'Create a routing rule', status: 'agreed', storyId: 'STORY-004',
+    requestBody: `{
+  "name": "Escalate unacked P0",
+  "conditions": [
+    { "field": "priority", "op": "eq", "value": "critical" },
+    { "field": "acked", "op": "eq", "value": false }
+  ],
+  "actions": [{ "type": "escalate", "target": "oncall-secondary", "after": "5m" }]
+}` },
   { id: 'API-009', protocol: 'rest', method: 'PUT', endpoint: '/api/v1/routing/rules/:id', description: 'Update a routing rule', status: 'draft', storyId: 'STORY-004' },
   { id: 'API-010', protocol: 'rest', method: 'DELETE', endpoint: '/api/v1/routing/rules/:id', description: 'Delete a routing rule', status: 'draft', storyId: 'STORY-004' },
   { id: 'API-011', protocol: 'rest', method: 'GET', endpoint: '/api/v1/routing/templates', description: 'List routing rule templates', status: 'draft', storyId: 'STORY-005' },
@@ -648,16 +692,220 @@ export const mockContracts: ApiContract[] = [
   { id: 'API-028', protocol: 'rest', method: 'POST', endpoint: '/api/v1/ml/predict', description: 'Get priority prediction for a notification', status: 'draft', storyId: 'STORY-022' },
   { id: 'API-029', protocol: 'rest', method: 'POST', endpoint: '/api/v1/ml/feedback', description: 'Submit user feedback for ML retraining', status: 'draft', storyId: 'STORY-025' },
   // ── GraphQL ──
-  { id: 'API-030', protocol: 'graphql', method: 'QUERY', endpoint: 'notificationPreferences', description: 'Fetch preferences with nested channel configs in a single request', status: 'implemented', storyId: 'STORY-001' },
-  { id: 'API-031', protocol: 'graphql', method: 'MUTATION', endpoint: 'updatePreferences', description: 'Partial update of preferences with optimistic response', status: 'implemented', storyId: 'STORY-001' },
-  { id: 'API-032', protocol: 'graphql', method: 'QUERY', endpoint: 'routingRules', description: 'Fetch routing rules with conditions, actions, and version history', status: 'agreed', storyId: 'STORY-004' },
-  { id: 'API-033', protocol: 'graphql', method: 'MUTATION', endpoint: 'upsertRoutingRule', description: 'Create or update a routing rule with nested conditions', status: 'agreed', storyId: 'STORY-004' },
-  { id: 'API-034', protocol: 'graphql', method: 'SUBSCRIPTION', endpoint: 'onDeliveryStatusChanged', description: 'Real-time delivery status updates via WebSocket', status: 'draft', storyId: 'STORY-008' },
-  { id: 'API-035', protocol: 'graphql', method: 'QUERY', endpoint: 'analyticsOverview', description: 'Dashboard analytics with delivery funnel, channel breakdown, and time series', status: 'agreed', storyId: 'STORY-008' },
-  { id: 'API-036', protocol: 'graphql', method: 'MUTATION', endpoint: 'simulateRouting', description: 'Dry-run routing simulation with full trace output', status: 'draft', storyId: 'STORY-006' },
-  { id: 'API-037', protocol: 'graphql', method: 'SUBSCRIPTION', endpoint: 'onNotificationReceived', description: 'Real-time notification stream for connected clients', status: 'draft', storyId: 'STORY-012' },
-  { id: 'API-038', protocol: 'graphql', method: 'QUERY', endpoint: 'auditLog', description: 'Paginated audit log with filters and cursor-based pagination', status: 'draft', storyId: 'STORY-017' },
-  { id: 'API-039', protocol: 'graphql', method: 'MUTATION', endpoint: 'connectSlack', description: 'Complete Slack OAuth flow and persist token', status: 'agreed', storyId: 'STORY-018' },
-  { id: 'API-040', protocol: 'graphql', method: 'QUERY', endpoint: 'mlPrediction', description: 'Get priority prediction with confidence score and feature attribution', status: 'draft', storyId: 'STORY-022' },
-  { id: 'API-041', protocol: 'graphql', method: 'SUBSCRIPTION', endpoint: 'onModelRetrained', description: 'Notification when ML model retraining completes', status: 'draft', storyId: 'STORY-025' },
+  { id: 'API-030', protocol: 'graphql', method: 'QUERY', endpoint: 'notificationPreferences', description: 'Fetch preferences with nested channel configs in a single request', status: 'implemented', storyId: 'STORY-001',
+    schema: `query NotificationPreferences($userId: ID!) {
+  notificationPreferences(userId: $userId) {
+    userId
+    channels {
+      id
+      name
+      enabled
+      config {
+        ... on EmailConfig { address digestFrequency format }
+        ... on PushConfig  { tokens { id browser lastUsed } }
+        ... on SlackConfig  { workspaceId channelId }
+      }
+    }
+    quietHours { from to timezone allowCritical }
+    priorityOverrides { priority channels }
+    updatedAt
+  }
+}` },
+  { id: 'API-031', protocol: 'graphql', method: 'MUTATION', endpoint: 'updatePreferences', description: 'Partial update of preferences with optimistic response', status: 'implemented', storyId: 'STORY-001',
+    schema: `mutation UpdatePreferences($input: PreferencesInput!) {
+  updatePreferences(input: $input) {
+    ok
+    preferences {
+      channels { id enabled }
+      quietHours { from to }
+      updatedAt
+    }
+    conflicts { field current incoming resolution }
+  }
+}
+
+input PreferencesInput {
+  channels: [ChannelInput!]
+  quietHours: QuietHoursInput
+  priorityOverrides: [PriorityOverrideInput!]
+}` },
+  { id: 'API-032', protocol: 'graphql', method: 'QUERY', endpoint: 'routingRules', description: 'Fetch routing rules with conditions, actions, and version history', status: 'agreed', storyId: 'STORY-004',
+    schema: `query RoutingRules($filter: RuleFilter, $page: PageInput) {
+  routingRules(filter: $filter, page: $page) {
+    edges {
+      node {
+        id
+        name
+        priority
+        enabled
+        conditions { field operator value }
+        actions {
+          type
+          ... on RouteAction   { channels }
+          ... on EscalateAction { target after }
+          ... on SuppressAction { reason duration }
+        }
+        versions(last: 5) { version author createdAt diff }
+      }
+    }
+    pageInfo { hasNextPage endCursor total }
+  }
+}` },
+  { id: 'API-033', protocol: 'graphql', method: 'MUTATION', endpoint: 'upsertRoutingRule', description: 'Create or update a routing rule with nested conditions', status: 'agreed', storyId: 'STORY-004',
+    schema: `mutation UpsertRoutingRule($input: RoutingRuleInput!) {
+  upsertRoutingRule(input: $input) {
+    rule {
+      id name priority enabled
+      conditions { field operator value }
+      actions { type ... on RouteAction { channels } }
+    }
+    version { version author createdAt }
+    validation { valid errors { path message } }
+  }
+}
+
+input RoutingRuleInput {
+  id: ID
+  name: String!
+  priority: Int!
+  conditions: [ConditionInput!]!
+  actions: [ActionInput!]!
+}` },
+  { id: 'API-034', protocol: 'graphql', method: 'SUBSCRIPTION', endpoint: 'onDeliveryStatusChanged', description: 'Real-time delivery status updates via WebSocket', status: 'draft', storyId: 'STORY-008',
+    schema: `subscription OnDeliveryStatusChanged($workspaceId: ID!) {
+  onDeliveryStatusChanged(workspaceId: $workspaceId) {
+    notificationId
+    channel
+    status        # PENDING | DELIVERED | FAILED | BOUNCED
+    timestamp
+    metadata {
+      ... on EmailDelivery { messageId openedAt }
+      ... on PushDelivery  { deviceId acked }
+      ... on SlackDelivery { ts channelId }
+    }
+    error { code message retryable }
+  }
+}` },
+  { id: 'API-035', protocol: 'graphql', method: 'QUERY', endpoint: 'analyticsOverview', description: 'Dashboard analytics with delivery funnel, channel breakdown, and time series', status: 'agreed', storyId: 'STORY-008',
+    schema: `query AnalyticsOverview($range: DateRange!, $granularity: Granularity) {
+  analyticsOverview(range: $range, granularity: $granularity) {
+    funnel { sent delivered opened clicked }
+    channels {
+      id name
+      deliveryRate
+      avgLatencyMs
+      volume
+    }
+    timeSeries {
+      timestamp
+      sent delivered failed
+    }
+    topFailureReasons { reason count percentage }
+  }
+}` },
+  { id: 'API-036', protocol: 'graphql', method: 'MUTATION', endpoint: 'simulateRouting', description: 'Dry-run routing simulation with full trace output', status: 'draft', storyId: 'STORY-006',
+    schema: `mutation SimulateRouting($notification: NotificationInput!) {
+  simulateRouting(notification: $notification) {
+    selectedChannels
+    matchedRules { id name priority }
+    trace {
+      step      # CLASSIFY | EVALUATE_RULES | SELECT_CHANNEL | DEDUPLICATE
+      input
+      output
+      durationMs
+    }
+    prediction {
+      model
+      confidence
+      suggestedPriority
+    }
+  }
+}` },
+  { id: 'API-037', protocol: 'graphql', method: 'SUBSCRIPTION', endpoint: 'onNotificationReceived', description: 'Real-time notification stream for connected clients', status: 'draft', storyId: 'STORY-012',
+    schema: `subscription OnNotificationReceived($userId: ID!, $channels: [Channel!]) {
+  onNotificationReceived(userId: $userId, channels: $channels) {
+    id
+    title
+    body
+    priority
+    channel
+    sender { id name avatar }
+    actions { label url }
+    createdAt
+    batchId   # null if not part of a batch
+  }
+}` },
+  { id: 'API-038', protocol: 'graphql', method: 'QUERY', endpoint: 'auditLog', description: 'Paginated audit log with filters and cursor-based pagination', status: 'draft', storyId: 'STORY-017',
+    schema: `query AuditLog(
+  $workspaceId: ID!
+  $filter: AuditFilter
+  $after: String
+  $first: Int = 25
+) {
+  auditLog(workspaceId: $workspaceId, filter: $filter, after: $after, first: $first) {
+    edges {
+      node {
+        id
+        action      # RULE_CREATED | RULE_UPDATED | USER_INVITED | TOKEN_ROTATED
+        actor { id name role }
+        target { type id name }
+        changes { field from to }
+        timestamp
+        ip
+      }
+    }
+    pageInfo { hasNextPage endCursor total }
+  }
+}` },
+  { id: 'API-039', protocol: 'graphql', method: 'MUTATION', endpoint: 'connectSlack', description: 'Complete Slack OAuth flow and persist token', status: 'agreed', storyId: 'STORY-018',
+    schema: `mutation ConnectSlack($input: SlackOAuthInput!) {
+  connectSlack(input: $input) {
+    integration {
+      id
+      workspaceName
+      channels { id name isPrivate }
+      botUserId
+      scopes
+      connectedAt
+    }
+    token { expiresAt refreshable }
+    testMessage { sent channelId ts }
+  }
+}
+
+input SlackOAuthInput {
+  code: String!
+  redirectUri: String!
+  defaultChannel: String
+}` },
+  { id: 'API-040', protocol: 'graphql', method: 'QUERY', endpoint: 'mlPrediction', description: 'Get priority prediction with confidence score and feature attribution', status: 'draft', storyId: 'STORY-022',
+    schema: `query MlPrediction($notification: NotificationInput!) {
+  mlPrediction(notification: $notification) {
+    predictedPriority    # P0 | P1 | P2 | P3
+    confidence           # 0.0 - 1.0
+    model { id version trainedAt accuracy }
+    features {
+      name               # e.g. "sender_historical_priority"
+      value
+      attribution        # SHAP value
+    }
+    suggestedChannel
+    latencyMs
+  }
+}` },
+  { id: 'API-041', protocol: 'graphql', method: 'SUBSCRIPTION', endpoint: 'onModelRetrained', description: 'Notification when ML model retraining completes', status: 'draft', storyId: 'STORY-025',
+    schema: `subscription OnModelRetrained($workspaceId: ID!) {
+  onModelRetrained(workspaceId: $workspaceId) {
+    model {
+      id
+      version
+      accuracy
+      trainedAt
+      samplesUsed
+      deltaFromPrevious { accuracy latencyP99 }
+    }
+    trigger      # SCHEDULED | FEEDBACK_THRESHOLD | MANUAL
+    promotedToProduction
+  }
+}` },
 ]
