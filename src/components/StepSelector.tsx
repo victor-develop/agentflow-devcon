@@ -119,7 +119,7 @@ export function StepSelector({ onSelect }: Props) {
 
   const nodes: Node<LaneNodeData>[] = useMemo(() => {
     const laneWidth = 280
-    const gapX = 100
+    const gapX = 60
     const startX = 60
     const startY = 20
 
@@ -155,7 +155,7 @@ export function StepSelector({ onSelect }: Props) {
           edges={edges}
           nodeTypes={nodeTypes}
           fitView
-          fitViewOptions={{ padding: 0.15 }}
+          fitViewOptions={{ padding: 0.05 }}
           minZoom={0.4}
           maxZoom={1.5}
           proOptions={{ hideAttribution: true }}
