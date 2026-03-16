@@ -4,11 +4,17 @@ import { mockPRD } from '../mockData'
 import { ListToolbar, type ViewMode } from '../components/ListToolbar'
 import { Pagination } from '../components/Pagination'
 import { CommitHistory, HistoryToggle } from '../components/CommitHistory'
+import { ComponentPreview } from '../components/ComponentPreview'
 
 export function ComponentsView() {
   const allComponents = useMemo(() =>
     mockPRD.stories.flatMap(s =>
-      s.designComponents.map(dc => ({ ...dc, storyId: s.id, storyTitle: s.title }))
+      s.designComponents.map(dc => ({
+        ...dc,
+        storyId: s.id,
+        storyTitle: s.title,
+        siblingComponents: s.designComponents.filter(d => d.id !== dc.id),
+      }))
     ), []
   )
 
@@ -134,13 +140,10 @@ export function ComponentsView() {
                 <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 8 }}>
                   Story: <span style={{ color: 'var(--text-primary)' }}>{c.storyTitle}</span>
                 </div>
-                <div style={{
-                  padding: 32, borderRadius: 8, background: 'var(--bg-tertiary)',
-                  border: '1px dashed var(--border)', textAlign: 'center',
-                  color: 'var(--text-muted)', fontSize: 13, marginBottom: showHistory[c.id] ? 16 : 0,
-                }}>
-                  Component preview placeholder
-                </div>
+                <ComponentPreview
+                  component={c}
+                  childComponents={c.type === 'page' ? c.siblingComponents : []}
+                />
                 {showHistory[c.id] && (
                   <div>
                     <div className="section-title">Commit History</div>
