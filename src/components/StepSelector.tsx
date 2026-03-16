@@ -1,193 +1,299 @@
+import { useCallback, useMemo } from 'react'
+import {
+  ReactFlow,
+  type Node,
+  type Edge,
+  type NodeTypes,
+  type NodeProps,
+  Background,
+  BackgroundVariant,
+  Handle,
+  Position,
+} from '@xyflow/react'
+import '@xyflow/react/dist/style.css'
 import {
   AlertTriangle, FileText, LayoutList, Palette, Component,
   FileCode2, Box, TestTube, Wrench, Code2, ShieldCheck, Zap,
-  ArrowRight
+  ArrowRight,
 } from 'lucide-react'
-import type { WorkflowStepId } from '../types'
+import type { WorkflowStepId, WorkflowStep } from '../types'
 import { workflowSteps } from '../mockData'
 
+/* ── Icon map ─────────────────────────────────────────── */
 const stepIcons: Record<WorkflowStepId, React.ReactNode> = {
-  problem: <AlertTriangle size={24} />,
-  prd: <FileText size={24} />,
-  stories: <LayoutList size={24} />,
-  design: <Palette size={24} />,
-  components: <Component size={24} />,
-  contracts: <FileCode2 size={24} />,
-  prototype: <Box size={24} />,
-  e2e: <TestTube size={24} />,
-  harness: <Wrench size={24} />,
-  development: <Code2 size={24} />,
-  verification: <ShieldCheck size={24} />,
+  problem: <AlertTriangle size={16} />,
+  prd: <FileText size={16} />,
+  stories: <LayoutList size={16} />,
+  design: <Palette size={16} />,
+  components: <Component size={16} />,
+  contracts: <FileCode2 size={16} />,
+  prototype: <Box size={16} />,
+  e2e: <TestTube size={16} />,
+  harness: <Wrench size={16} />,
+  development: <Code2 size={16} />,
+  verification: <ShieldCheck size={16} />,
 }
 
-const phaseColors: Record<string, string> = {
-  define: 'var(--cyan)',
-  design: 'var(--purple)',
-  develop: 'var(--amber)',
-  verify: 'var(--green)',
+const phaseConfig: Record<string, { label: string; color: string; colorVar: string }> = {
+  define: { label: 'Define', color: '#06b6d4', colorVar: 'var(--cyan)' },
+  design: { label: 'Design', color: '#a855f7', colorVar: 'var(--purple)' },
+  develop: { label: 'Develop', color: '#f59e0b', colorVar: 'var(--amber)' },
+  verify: { label: 'Verify', color: '#22c55e', colorVar: 'var(--green)' },
 }
 
+/* ── Phase Node ───────────────────────────────────────── */
+type PhaseNodeData = {
+  phase: string
+  steps: WorkflowStep[]
+  onSelect: (id: WorkflowStepId) => void
+}
+
+function PhaseNode({ data }: NodeProps<Node<PhaseNodeData>>) {
+  const { phase, steps, onSelect } = data
+  const cfg = phaseConfig[phase]
+  const completedCount = steps.filter(s => s.status === 'completed').length
+
+  return (
+    <div className="phase-node" style={{ '--phase-color': cfg.color } as React.CSSProperties}>
+      <Handle type="target" position={Position.Left} className="phase-handle" />
+      <div className="phase-node-header">
+        <span className="phase-node-dot" />
+        <span className="phase-node-label">{cfg.label}</span>
+        <span className="phase-node-count">{completedCount}/{steps.length}</span>
+      </div>
+      <div className="phase-node-steps">
+        {steps.map(step => (
+          <button
+            key={step.id}
+            className={`phase-step-btn step-${step.status}`}
+            onClick={() => onSelect(step.id)}
+          >
+            <span className="phase-step-icon">{stepIcons[step.id]}</span>
+            <span className="phase-step-name">{step.label}</span>
+            <span className={`phase-step-status tag tag-${step.status}`}>{step.status}</span>
+            <ArrowRight size={12} className="phase-step-arrow" />
+          </button>
+        ))}
+      </div>
+      <Handle type="source" position={Position.Right} className="phase-handle" />
+    </div>
+  )
+}
+
+const nodeTypes: NodeTypes = { phase: PhaseNode }
+
+/* ── Main Component ───────────────────────────────────── */
 interface Props {
   onSelect: (id: WorkflowStepId) => void
 }
 
 export function StepSelector({ onSelect }: Props) {
   const phases = ['define', 'design', 'develop', 'verify'] as const
-  const phaseLabels: Record<string, string> = {
-    define: 'Define',
-    design: 'Design',
-    develop: 'Develop',
-    verify: 'Verify',
-  }
+
+  const nodes: Node<PhaseNodeData>[] = useMemo(() => {
+    const nodeWidth = 320
+    const gapX = 120
+    const startX = 80
+    const startY = 140
+
+    return phases.map((phase, i) => {
+      const steps = workflowSteps.filter(s => s.phase === phase)
+      // stagger vertically for visual interest
+      const yOffset = i % 2 === 0 ? 0 : 60
+      return {
+        id: phase,
+        type: 'phase',
+        position: { x: startX + i * (nodeWidth + gapX), y: startY + yOffset },
+        data: { phase, steps, onSelect },
+        draggable: true,
+      }
+    })
+  }, [onSelect])
+
+  const edges: Edge[] = useMemo(() => [
+    { id: 'e-define-design', source: 'define', target: 'design', type: 'default', animated: true, style: { stroke: '#06b6d4', strokeWidth: 2 } },
+    { id: 'e-design-develop', source: 'design', target: 'develop', type: 'default', animated: true, style: { stroke: '#a855f7', strokeWidth: 2 } },
+    { id: 'e-develop-verify', source: 'develop', target: 'verify', type: 'default', animated: true, style: { stroke: '#f59e0b', strokeWidth: 2 } },
+  ], [])
+
+  const onNodeDragStop = useCallback(() => {}, [])
 
   return (
-    <div className="step-selector">
-      <div className="selector-header">
-        <Zap size={32} className="selector-logo" />
+    <div className="step-selector-flow">
+      <div className="flow-header">
+        <Zap size={28} className="selector-logo" />
         <h1>AgentFlow Dev Console</h1>
         <p>AI-First Development Workflow</p>
-        <p className="selector-subtitle">Select a workflow step to begin</p>
       </div>
-
-      <div className="selector-grid">
-        {phases.map(phase => (
-          <div key={phase} className="selector-phase">
-            <div className="selector-phase-header" style={{ color: phaseColors[phase] }}>
-              <span className="selector-phase-dot" style={{ background: phaseColors[phase] }} />
-              {phaseLabels[phase]}
-            </div>
-            {workflowSteps
-              .filter(s => s.phase === phase)
-              .map(step => (
-                <button
-                  key={step.id}
-                  className={`selector-card step-${step.status}`}
-                  onClick={() => onSelect(step.id)}
-                >
-                  <div className="selector-card-icon" style={{ color: phaseColors[phase] }}>
-                    {stepIcons[step.id]}
-                  </div>
-                  <div className="selector-card-content">
-                    <div className="selector-card-title">{step.label}</div>
-                    <div className="selector-card-desc">{step.description}</div>
-                  </div>
-                  <div className="selector-card-meta">
-                    <span className={`tag tag-${step.status}`}>{step.status}</span>
-                    <ArrowRight size={14} className="selector-arrow" />
-                  </div>
-                </button>
-              ))}
-          </div>
-        ))}
+      <div className="flow-canvas">
+        <ReactFlow
+          nodes={nodes}
+          edges={edges}
+          nodeTypes={nodeTypes}
+          onNodeDragStop={onNodeDragStop}
+          fitView
+          fitViewOptions={{ padding: 0.3 }}
+          minZoom={0.5}
+          maxZoom={1.5}
+          proOptions={{ hideAttribution: true }}
+          panOnScroll
+          zoomOnScroll={false}
+        >
+          <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="#252535" />
+        </ReactFlow>
       </div>
 
       <style>{`
-        .step-selector {
+        .step-selector-flow {
           height: 100vh;
-          overflow-y: auto;
+          display: flex;
+          flex-direction: column;
           background: var(--bg-primary);
-          padding: 60px 40px;
         }
-        .selector-header {
+        .flow-header {
           text-align: center;
-          margin-bottom: 48px;
+          padding: 32px 20px 16px;
+          flex-shrink: 0;
         }
-        .selector-logo {
+        .flow-header .selector-logo {
           color: var(--accent);
-          margin-bottom: 16px;
+          margin-bottom: 8px;
         }
-        .selector-header h1 {
-          font-size: 32px;
+        .flow-header h1 {
+          font-size: 28px;
           font-weight: 700;
-          margin-bottom: 6px;
+          margin-bottom: 4px;
           background: linear-gradient(135deg, var(--text-primary), var(--accent-hover));
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
         }
-        .selector-header p {
+        .flow-header p {
           color: var(--text-secondary);
-          font-size: 15px;
+          font-size: 14px;
         }
-        .selector-subtitle {
-          margin-top: 4px;
-          color: var(--text-muted) !important;
-          font-size: 13px !important;
+        .flow-canvas {
+          flex: 1;
+          min-height: 0;
         }
-        .selector-grid {
-          max-width: 960px;
-          margin: 0 auto;
-          display: grid;
-          grid-template-columns: repeat(2, 1fr);
-          gap: 32px;
+
+        /* React Flow overrides */
+        .react-flow__renderer {
+          background: transparent !important;
         }
-        @media (max-width: 768px) {
-          .selector-grid { grid-template-columns: 1fr; }
+        .react-flow__edge-path {
+          stroke-dasharray: 5;
         }
-        .selector-phase-header {
-          font-size: 12px;
+        .react-flow__handle {
+          opacity: 0;
+          width: 8px;
+          height: 8px;
+        }
+
+        /* Phase Node */
+        .phase-node {
+          min-width: 280px;
+          background: var(--bg-card);
+          border: 1px solid var(--border);
+          border-radius: 12px;
+          overflow: hidden;
+          box-shadow: 0 4px 24px rgba(0,0,0,0.4);
+          transition: box-shadow 0.2s;
+        }
+        .phase-node:hover {
+          box-shadow: 0 4px 32px rgba(0,0,0,0.6), 0 0 0 1px var(--phase-color);
+        }
+
+        .phase-node-header {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 12px 16px;
+          border-bottom: 1px solid var(--border);
+          background: rgba(255,255,255,0.02);
+        }
+        .phase-node-dot {
+          width: 10px;
+          height: 10px;
+          border-radius: 50%;
+          background: var(--phase-color);
+          box-shadow: 0 0 8px var(--phase-color);
+        }
+        .phase-node-label {
+          font-size: 13px;
           font-weight: 700;
           text-transform: uppercase;
           letter-spacing: 0.8px;
-          margin-bottom: 10px;
+          color: var(--phase-color);
+          flex: 1;
+        }
+        .phase-node-count {
+          font-size: 11px;
+          color: var(--text-muted);
+          font-family: 'JetBrains Mono', monospace;
+        }
+
+        .phase-node-steps {
+          padding: 6px;
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+        }
+
+        .phase-step-btn {
           display: flex;
           align-items: center;
-          gap: 8px;
-        }
-        .selector-phase-dot {
-          width: 8px;
-          height: 8px;
-          border-radius: 50%;
-        }
-        .selector-card {
-          display: flex;
-          align-items: center;
-          gap: 14px;
+          gap: 10px;
           width: 100%;
-          padding: 14px 16px;
-          background: var(--bg-card);
-          border: 1px solid var(--border);
-          border-radius: var(--radius-lg);
-          margin-bottom: 8px;
-          text-align: left;
+          padding: 10px 12px;
+          background: transparent;
+          border: 1px solid transparent;
+          border-radius: 8px;
           color: var(--text-primary);
+          font-size: 13px;
+          text-align: left;
+          transition: all 0.15s;
+          cursor: pointer;
+        }
+        .phase-step-btn:hover {
+          background: var(--bg-hover);
+          border-color: var(--phase-color);
+        }
+        .phase-step-btn.step-completed {
+          opacity: 0.7;
+        }
+        .phase-step-btn.step-completed:hover {
+          opacity: 1;
+        }
+
+        .phase-step-icon {
+          display: flex;
+          align-items: center;
+          color: var(--phase-color);
+          flex-shrink: 0;
+        }
+        .phase-step-name {
+          flex: 1;
+          font-weight: 500;
+        }
+        .phase-step-status {
+          font-size: 10px;
+          flex-shrink: 0;
+        }
+        .phase-step-arrow {
+          color: var(--text-muted);
+          flex-shrink: 0;
+          opacity: 0;
           transition: all 0.15s;
         }
-        .selector-card:hover {
-          border-color: var(--accent-dim);
-          background: var(--bg-hover);
-          transform: translateX(4px);
+        .phase-step-btn:hover .phase-step-arrow {
+          opacity: 1;
+          color: var(--phase-color);
+          transform: translateX(2px);
         }
-        .selector-card.step-completed {
-          opacity: 0.65;
-        }
-        .selector-card.step-completed:hover { opacity: 1; }
-        .selector-card-icon {
-          flex-shrink: 0;
-          opacity: 0.8;
-        }
-        .selector-card-content { flex: 1; }
-        .selector-card-title {
-          font-size: 14px;
-          font-weight: 600;
-        }
-        .selector-card-desc {
-          font-size: 12px;
-          color: var(--text-muted);
-          margin-top: 2px;
-        }
-        .selector-card-meta {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          flex-shrink: 0;
-        }
-        .selector-arrow {
-          color: var(--text-muted);
-          transition: transform 0.15s;
-        }
-        .selector-card:hover .selector-arrow {
-          transform: translateX(3px);
-          color: var(--accent);
+
+        .phase-handle {
+          background: var(--phase-color) !important;
+          border: none !important;
         }
       `}</style>
     </div>
