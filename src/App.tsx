@@ -13,6 +13,7 @@ import { HarnessView } from './views/HarnessView'
 import { DevelopmentView } from './views/DevelopmentView'
 import { VerificationView } from './views/VerificationView'
 import { StepSelector } from './components/StepSelector'
+import { ChatPanel } from './components/ChatPanel'
 import type { WorkflowStepId } from './types'
 import { workflowSteps } from './mockData'
 import './App.css'
@@ -57,24 +58,27 @@ export default function App() {
           onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
           onStepClick={setActiveStep}
         />
-        <main className="main-content">
-          <div className="content-header">
-            <div className="content-header-left">
-              <span className="phase-badge" data-phase={currentStep.phase}>
-                {currentStep.phase}
-              </span>
-              <h1>{currentStep.label}</h1>
+        <div className="main-with-chat">
+          <main className="main-content">
+            <div className="content-header">
+              <div className="content-header-left">
+                <span className="phase-badge" data-phase={currentStep.phase}>
+                  {currentStep.phase}
+                </span>
+                <h1>{currentStep.label}</h1>
+              </div>
+              <div className="content-header-right">
+                <span className={`status-indicator status-${currentStep.status}`}>
+                  {currentStep.status}
+                </span>
+              </div>
             </div>
-            <div className="content-header-right">
-              <span className={`status-indicator status-${currentStep.status}`}>
-                {currentStep.status}
-              </span>
+            <div className="content-body">
+              <ActiveView />
             </div>
-          </div>
-          <div className="content-body">
-            <ActiveView />
-          </div>
-        </main>
+          </main>
+          <ChatPanel activeStep={activeStep} />
+        </div>
       </div>
     </div>
   )
