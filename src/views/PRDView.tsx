@@ -3,6 +3,7 @@ import { ChevronRight, Target, XCircle, TrendingUp, FileText } from 'lucide-reac
 import { mockPRDs } from '../mockData'
 import { ListToolbar, type ViewMode } from '../components/ListToolbar'
 import { Pagination } from '../components/Pagination'
+import { CommitHistory, HistoryToggle } from '../components/CommitHistory'
 
 export function PRDView() {
   const [search, setSearch] = useState('')
@@ -12,6 +13,7 @@ export function PRDView() {
   const [pageSize, setPageSize] = useState(10)
   const [expanded, setExpanded] = useState<Record<string, boolean>>({ 'PRD-001': true })
   const [sections, setSections] = useState<Record<string, boolean>>({ 'PRD-001-goals': true, 'PRD-001-metrics': true })
+  const [showHistory, setShowHistory] = useState<Record<string, boolean>>({})
 
   const toggleFilter = (v: string) => {
     setActiveFilters(prev => prev.includes(v) ? prev.filter(f => f !== v) : [...prev, v])
@@ -120,6 +122,7 @@ export function PRDView() {
                 <h3>{prd.title}</h3>
               </div>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <HistoryToggle itemId={prd.id} isOpen={!!showHistory[prd.id]} onToggle={() => setShowHistory(p => ({ ...p, [prd.id]: !p[prd.id] }))} />
                 <span className="mono" style={{ fontSize: 11, color: 'var(--text-muted)' }}>{prd.problemId}</span>
                 <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{prd.stories.length} stories</span>
                 <span className={`tag tag-${prd.status}`}>{prd.status}</span>
@@ -234,6 +237,13 @@ export function PRDView() {
                         </tbody>
                       </table>
                     )}
+                  </div>
+                )}
+
+                {showHistory[prd.id] && (
+                  <div>
+                    <div className="section-title">Commit History</div>
+                    <CommitHistory itemId={prd.id} />
                   </div>
                 )}
 

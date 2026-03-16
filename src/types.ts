@@ -89,3 +89,18 @@ export interface PRD {
   createdAt: string
   updatedAt: string
 }
+
+export interface CommitEntry {
+  hash: string
+  message: string
+  author: string
+  date: string
+  changes: FieldChange[]
+}
+
+export interface FieldChange {
+  field: string
+  from?: string
+  to?: string
+  type: 'added' | 'removed' | 'changed' | 'created'
+}

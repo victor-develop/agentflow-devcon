@@ -3,6 +3,7 @@ import { ChevronRight } from 'lucide-react'
 import { mockPRD } from '../mockData'
 import { ListToolbar, type ViewMode } from '../components/ListToolbar'
 import { Pagination } from '../components/Pagination'
+import { CommitHistory, HistoryToggle } from '../components/CommitHistory'
 
 export function ComponentsView() {
   const allComponents = useMemo(() =>
@@ -17,6 +18,7 @@ export function ComponentsView() {
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
+  const [showHistory, setShowHistory] = useState<Record<string, boolean>>({})
 
   const toggleFilter = (v: string) => {
     setActiveFilters(prev => prev.includes(v) ? prev.filter(f => f !== v) : [...prev, v])
@@ -122,6 +124,7 @@ export function ComponentsView() {
                 <h3>{c.name}</h3>
               </div>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <HistoryToggle itemId={c.id} isOpen={!!showHistory[c.id]} onToggle={() => setShowHistory(p => ({ ...p, [c.id]: !p[c.id] }))} />
                 <span className="mono" style={{ fontSize: 11, color: 'var(--text-muted)' }}>{c.storyId}</span>
                 <span className={`tag tag-${c.status}`}>{c.status}</span>
               </div>
@@ -134,10 +137,16 @@ export function ComponentsView() {
                 <div style={{
                   padding: 32, borderRadius: 8, background: 'var(--bg-tertiary)',
                   border: '1px dashed var(--border)', textAlign: 'center',
-                  color: 'var(--text-muted)', fontSize: 13,
+                  color: 'var(--text-muted)', fontSize: 13, marginBottom: showHistory[c.id] ? 16 : 0,
                 }}>
                   Component preview placeholder
                 </div>
+                {showHistory[c.id] && (
+                  <div>
+                    <div className="section-title">Commit History</div>
+                    <CommitHistory itemId={c.id} />
+                  </div>
+                )}
               </div>
             )}
           </div>

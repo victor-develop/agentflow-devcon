@@ -3,6 +3,7 @@ import { ChevronRight, Lightbulb, BarChart3 } from 'lucide-react'
 import { mockProblems } from '../mockData'
 import { ListToolbar, type ViewMode } from '../components/ListToolbar'
 import { Pagination } from '../components/Pagination'
+import { CommitHistory, HistoryToggle } from '../components/CommitHistory'
 
 export function ProblemView() {
   const [search, setSearch] = useState('')
@@ -11,6 +12,7 @@ export function ProblemView() {
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
   const [expanded, setExpanded] = useState<Record<string, boolean>>({ 'PROB-001': true })
+  const [showHistory, setShowHistory] = useState<Record<string, boolean>>({})
 
   const toggleFilter = (v: string) => {
     setActiveFilters(prev => prev.includes(v) ? prev.filter(f => f !== v) : [...prev, v])
@@ -120,6 +122,7 @@ export function ProblemView() {
                 <h3>{prob.title}</h3>
               </div>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <HistoryToggle itemId={prob.id} isOpen={!!showHistory[prob.id]} onToggle={() => setShowHistory(p => ({ ...p, [prob.id]: !p[prob.id] }))} />
                 <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{prob.createdAt}</span>
                 <span className={`tag tag-${prob.severity}`}>{prob.severity}</span>
                 <span className={`tag tag-${prob.status}`}>{prob.status}</span>
@@ -175,13 +178,20 @@ export function ProblemView() {
 
                 {/* Linked PRDs */}
                 {prob.prdIds.length > 0 && (
-                  <div>
+                  <div style={{ marginBottom: showHistory[prob.id] ? 16 : 0 }}>
                     <div className="section-title">Linked PRDs</div>
                     <div style={{ display: 'flex', gap: 8 }}>
                       {prob.prdIds.map(id => (
                         <span key={id} className="code-path">{id}</span>
                       ))}
                     </div>
+                  </div>
+                )}
+
+                {showHistory[prob.id] && (
+                  <div>
+                    <div className="section-title">Commit History</div>
+                    <CommitHistory itemId={prob.id} />
                   </div>
                 )}
               </div>

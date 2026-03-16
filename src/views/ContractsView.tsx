@@ -3,6 +3,7 @@ import { ChevronRight } from 'lucide-react'
 import { mockContracts, mockPRD } from '../mockData'
 import { ListToolbar, type ViewMode } from '../components/ListToolbar'
 import { Pagination } from '../components/Pagination'
+import { CommitHistory, HistoryToggle } from '../components/CommitHistory'
 
 export function ContractsView() {
   const [search, setSearch] = useState('')
@@ -11,6 +12,7 @@ export function ContractsView() {
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
+  const [showHistory, setShowHistory] = useState<Record<string, boolean>>({})
 
   const storyMap = Object.fromEntries(mockPRD.stories.map(s => [s.id, s.title]))
 
@@ -123,6 +125,7 @@ export function ContractsView() {
                 </span>
               </div>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <HistoryToggle itemId={contract.id} isOpen={!!showHistory[contract.id]} onToggle={() => setShowHistory(p => ({ ...p, [contract.id]: !p[contract.id] }))} />
                 <span className="mono" style={{ fontSize: 11, color: 'var(--text-muted)' }}>{contract.storyId}</span>
                 <span className={`tag tag-${contract.status}`}>{contract.status}</span>
               </div>
@@ -132,9 +135,15 @@ export function ContractsView() {
                 <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 8 }}>
                   {contract.description}
                 </div>
-                <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: showHistory[contract.id] ? 16 : 0 }}>
                   Story: <span className="mono">{contract.storyId}</span> — {storyMap[contract.storyId] || 'Unknown'}
                 </div>
+                {showHistory[contract.id] && (
+                  <div>
+                    <div className="section-title">Commit History</div>
+                    <CommitHistory itemId={contract.id} />
+                  </div>
+                )}
               </div>
             )}
           </div>

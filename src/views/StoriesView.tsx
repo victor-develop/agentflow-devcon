@@ -3,6 +3,7 @@ import { ChevronRight, Layers, TestTube, Code2 } from 'lucide-react'
 import { mockPRD } from '../mockData'
 import { ListToolbar, type ViewMode } from '../components/ListToolbar'
 import { Pagination } from '../components/Pagination'
+import { CommitHistory, HistoryToggle } from '../components/CommitHistory'
 
 type SortKey = 'id' | 'priority' | 'status' | 'title'
 
@@ -18,6 +19,7 @@ export function StoriesView() {
   const [pageSize, setPageSize] = useState(10)
   const [expandedStories, setExpandedStories] = useState<Record<string, boolean>>({})
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({})
+  const [showHistory, setShowHistory] = useState<Record<string, boolean>>({})
 
   const allStories = mockPRD.stories
 
@@ -167,6 +169,7 @@ export function StoriesView() {
               <h3>{story.title}</h3>
             </div>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <HistoryToggle itemId={story.id} isOpen={!!showHistory[story.id]} onToggle={() => setShowHistory(p => ({ ...p, [story.id]: !p[story.id] }))} />
               <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
                 {story.designComponents.length}d · {story.testCases.length}t · {story.codeEntries.length}c
               </span>
@@ -235,7 +238,7 @@ export function StoriesView() {
               </div>
 
               {/* Code Entries */}
-              <div>
+              <div style={{ marginBottom: showHistory[story.id] ? 16 : 0 }}>
                 <div
                   style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', marginBottom: 8 }}
                   onClick={() => toggleSection(`${story.id}-code`)}
@@ -258,6 +261,13 @@ export function StoriesView() {
                   </div>
                 )}
               </div>
+
+              {showHistory[story.id] && (
+                <div>
+                  <div className="section-title">Commit History</div>
+                  <CommitHistory itemId={story.id} />
+                </div>
+              )}
             </div>
           )}
         </div>

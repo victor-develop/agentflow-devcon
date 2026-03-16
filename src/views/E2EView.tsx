@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react'
 import { mockPRD } from '../mockData'
 import { ListToolbar, type ViewMode } from '../components/ListToolbar'
 import { Pagination } from '../components/Pagination'
+import { CommitHistory, HistoryToggle } from '../components/CommitHistory'
 
 export function E2EView() {
   const allTests = useMemo(() =>
@@ -15,6 +16,7 @@ export function E2EView() {
   const [viewMode, setViewMode] = useState<ViewMode>('compact')
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(25)
+  const [showHistory, setShowHistory] = useState<Record<string, boolean>>({})
 
   const toggleFilter = (v: string) => {
     setActiveFilters(prev => prev.includes(v) ? prev.filter(f => f !== v) : [...prev, v])
@@ -122,11 +124,18 @@ export function E2EView() {
                 <span style={{ fontWeight: 600, fontSize: 14 }}>{tc.title}</span>
               </div>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <HistoryToggle itemId={tc.id} isOpen={!!showHistory[tc.id]} onToggle={() => setShowHistory(p => ({ ...p, [tc.id]: !p[tc.id] }))} />
                 <span className={`type-badge type-${tc.type}`}>{tc.type}</span>
                 <span className="mono" style={{ fontSize: 11, color: 'var(--text-muted)' }}>{tc.storyId}</span>
                 <span className={`tag tag-${tc.status}`}>{tc.status}</span>
               </div>
             </div>
+            {showHistory[tc.id] && (
+              <div style={{ padding: '12px 16px', borderTop: '1px solid var(--border)' }}>
+                <div className="section-title">Commit History</div>
+                <CommitHistory itemId={tc.id} />
+              </div>
+            )}
           </div>
         ))
       )}
