@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react'
+import { useMemo } from 'react'
 import {
   ReactFlow,
   type Node,
@@ -14,73 +14,99 @@ import '@xyflow/react/dist/style.css'
 import {
   AlertTriangle, FileText, LayoutList, Palette, Component,
   FileCode2, Box, TestTube, Wrench, Code2, ShieldCheck, Zap,
-  ArrowRight,
+  ArrowRight, CheckCircle2, Clock, Circle,
 } from 'lucide-react'
 import type { WorkflowStepId, WorkflowStep } from '../types'
 import { workflowSteps } from '../mockData'
 
 /* ── Icon map ─────────────────────────────────────────── */
 const stepIcons: Record<WorkflowStepId, React.ReactNode> = {
-  problem: <AlertTriangle size={16} />,
-  prd: <FileText size={16} />,
-  stories: <LayoutList size={16} />,
-  design: <Palette size={16} />,
-  components: <Component size={16} />,
-  contracts: <FileCode2 size={16} />,
-  prototype: <Box size={16} />,
-  e2e: <TestTube size={16} />,
-  harness: <Wrench size={16} />,
-  development: <Code2 size={16} />,
-  verification: <ShieldCheck size={16} />,
+  problem: <AlertTriangle size={18} />,
+  prd: <FileText size={18} />,
+  stories: <LayoutList size={18} />,
+  design: <Palette size={18} />,
+  components: <Component size={18} />,
+  contracts: <FileCode2 size={18} />,
+  prototype: <Box size={18} />,
+  e2e: <TestTube size={18} />,
+  harness: <Wrench size={18} />,
+  development: <Code2 size={18} />,
+  verification: <ShieldCheck size={18} />,
 }
 
-const phaseConfig: Record<string, { label: string; color: string; colorVar: string }> = {
-  define: { label: 'Define', color: '#06b6d4', colorVar: 'var(--cyan)' },
-  design: { label: 'Design', color: '#a855f7', colorVar: 'var(--purple)' },
-  develop: { label: 'Develop', color: '#f59e0b', colorVar: 'var(--amber)' },
-  verify: { label: 'Verify', color: '#22c55e', colorVar: 'var(--green)' },
+const statusIcon = (status: string) => {
+  if (status === 'completed') return <CheckCircle2 size={14} />
+  if (status === 'active') return <Clock size={14} />
+  return <Circle size={14} />
 }
 
-/* ── Phase Node ───────────────────────────────────────── */
-type PhaseNodeData = {
+const phaseConfig: Record<string, { label: string; color: string; desc: string }> = {
+  define: { label: 'Define', color: '#06b6d4', desc: 'Problem & requirements' },
+  design: { label: 'Design', color: '#a855f7', desc: 'System & components' },
+  develop: { label: 'Develop', color: '#f59e0b', desc: 'Build & test' },
+  verify: { label: 'Verify', color: '#22c55e', desc: 'Validate & ship' },
+}
+
+/* ── Lane Node (Kanban Column) ────────────────────────── */
+type LaneNodeData = {
   phase: string
   steps: WorkflowStep[]
   onSelect: (id: WorkflowStepId) => void
 }
 
-function PhaseNode({ data }: NodeProps<Node<PhaseNodeData>>) {
+function LaneNode({ data }: NodeProps<Node<LaneNodeData>>) {
   const { phase, steps, onSelect } = data
   const cfg = phaseConfig[phase]
   const completedCount = steps.filter(s => s.status === 'completed').length
+  const pct = Math.round((completedCount / steps.length) * 100)
 
   return (
-    <div className="phase-node" style={{ '--phase-color': cfg.color } as React.CSSProperties}>
-      <Handle type="target" position={Position.Left} className="phase-handle" />
-      <div className="phase-node-header">
-        <span className="phase-node-dot" />
-        <span className="phase-node-label">{cfg.label}</span>
-        <span className="phase-node-count">{completedCount}/{steps.length}</span>
+    <div className="kanban-lane" style={{ '--lane-color': cfg.color } as React.CSSProperties}>
+      <Handle type="target" position={Position.Left} className="lane-handle" />
+
+      {/* Lane Header */}
+      <div className="lane-header">
+        <div className="lane-header-top">
+          <span className="lane-dot" />
+          <span className="lane-title">{cfg.label}</span>
+          <span className="lane-count">{completedCount}/{steps.length}</span>
+        </div>
+        <div className="lane-desc">{cfg.desc}</div>
+        <div className="lane-progress">
+          <div className="lane-progress-bar" style={{ width: `${pct}%` }} />
+        </div>
       </div>
-      <div className="phase-node-steps">
+
+      {/* Step Cards */}
+      <div className="lane-cards">
         {steps.map(step => (
           <button
             key={step.id}
-            className={`phase-step-btn step-${step.status}`}
+            className={`kanban-card card-${step.status}`}
             onClick={() => onSelect(step.id)}
           >
-            <span className="phase-step-icon">{stepIcons[step.id]}</span>
-            <span className="phase-step-name">{step.label}</span>
-            <span className={`phase-step-status tag tag-${step.status}`}>{step.status}</span>
-            <ArrowRight size={12} className="phase-step-arrow" />
+            <div className="kanban-card-top">
+              <span className="kanban-card-icon">{stepIcons[step.id]}</span>
+              <span className="kanban-card-title">{step.label}</span>
+            </div>
+            <div className="kanban-card-desc">{step.description}</div>
+            <div className="kanban-card-footer">
+              <span className={`kanban-status status-${step.status}`}>
+                {statusIcon(step.status)}
+                {step.status}
+              </span>
+              <ArrowRight size={14} className="kanban-card-arrow" />
+            </div>
           </button>
         ))}
       </div>
-      <Handle type="source" position={Position.Right} className="phase-handle" />
+
+      <Handle type="source" position={Position.Right} className="lane-handle" />
     </div>
   )
 }
 
-const nodeTypes: NodeTypes = { phase: PhaseNode }
+const nodeTypes: NodeTypes = { lane: LaneNode }
 
 /* ── Main Component ───────────────────────────────────── */
 interface Props {
@@ -90,209 +116,249 @@ interface Props {
 export function StepSelector({ onSelect }: Props) {
   const phases = ['define', 'design', 'develop', 'verify'] as const
 
-  const nodes: Node<PhaseNodeData>[] = useMemo(() => {
-    const nodeWidth = 320
-    const gapX = 120
-    const startX = 80
-    const startY = 140
+  const nodes: Node<LaneNodeData>[] = useMemo(() => {
+    const laneWidth = 280
+    const gapX = 100
+    const startX = 60
+    const startY = 20
 
-    return phases.map((phase, i) => {
-      const steps = workflowSteps.filter(s => s.phase === phase)
-      // stagger vertically for visual interest
-      const yOffset = i % 2 === 0 ? 0 : 60
-      return {
-        id: phase,
-        type: 'phase',
-        position: { x: startX + i * (nodeWidth + gapX), y: startY + yOffset },
-        data: { phase, steps, onSelect },
-        draggable: true,
-      }
-    })
+    return phases.map((phase, i) => ({
+      id: phase,
+      type: 'lane',
+      position: { x: startX + i * (laneWidth + gapX), y: startY },
+      data: { phase, steps: workflowSteps.filter(s => s.phase === phase), onSelect },
+      draggable: true,
+    }))
   }, [onSelect])
 
   const edges: Edge[] = useMemo(() => [
-    { id: 'e-define-design', source: 'define', target: 'design', type: 'default', animated: true, style: { stroke: '#06b6d4', strokeWidth: 2 } },
-    { id: 'e-design-develop', source: 'design', target: 'develop', type: 'default', animated: true, style: { stroke: '#a855f7', strokeWidth: 2 } },
-    { id: 'e-develop-verify', source: 'develop', target: 'verify', type: 'default', animated: true, style: { stroke: '#f59e0b', strokeWidth: 2 } },
+    { id: 'e1', source: 'define', target: 'design', type: 'default', animated: true, style: { stroke: '#06b6d4', strokeWidth: 2 } },
+    { id: 'e2', source: 'design', target: 'develop', type: 'default', animated: true, style: { stroke: '#a855f7', strokeWidth: 2 } },
+    { id: 'e3', source: 'develop', target: 'verify', type: 'default', animated: true, style: { stroke: '#f59e0b', strokeWidth: 2 } },
   ], [])
 
-  const onNodeDragStop = useCallback(() => {}, [])
-
   return (
-    <div className="step-selector-flow">
-      <div className="flow-header">
-        <Zap size={28} className="selector-logo" />
-        <h1>AgentFlow Dev Console</h1>
-        <p>AI-First Development Workflow</p>
+    <div className="kanban-flow">
+      <div className="kanban-header">
+        <div className="kanban-header-left">
+          <Zap size={24} className="kanban-logo" />
+          <div>
+            <h1>AgentFlow Dev Console</h1>
+            <p>AI-First Development Workflow</p>
+          </div>
+        </div>
       </div>
-      <div className="flow-canvas">
+      <div className="kanban-canvas">
         <ReactFlow
           nodes={nodes}
           edges={edges}
           nodeTypes={nodeTypes}
-          onNodeDragStop={onNodeDragStop}
           fitView
-          fitViewOptions={{ padding: 0.3 }}
-          minZoom={0.5}
+          fitViewOptions={{ padding: 0.15 }}
+          minZoom={0.4}
           maxZoom={1.5}
           proOptions={{ hideAttribution: true }}
           panOnScroll
           zoomOnScroll={false}
         >
-          <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="#252535" />
+          <Background variant={BackgroundVariant.Dots} gap={24} size={1} color="#1a1a2e" />
         </ReactFlow>
       </div>
 
       <style>{`
-        .step-selector-flow {
+        .kanban-flow {
           height: 100vh;
           display: flex;
           flex-direction: column;
           background: var(--bg-primary);
         }
-        .flow-header {
-          text-align: center;
-          padding: 32px 20px 16px;
+
+        /* ── Header ── */
+        .kanban-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 16px 24px;
+          border-bottom: 1px solid var(--border);
+          background: var(--bg-secondary);
           flex-shrink: 0;
         }
-        .flow-header .selector-logo {
-          color: var(--accent);
-          margin-bottom: 8px;
+        .kanban-header-left {
+          display: flex;
+          align-items: center;
+          gap: 12px;
         }
-        .flow-header h1 {
-          font-size: 28px;
+        .kanban-logo { color: var(--accent); }
+        .kanban-header h1 {
+          font-size: 18px;
           font-weight: 700;
-          margin-bottom: 4px;
           background: linear-gradient(135deg, var(--text-primary), var(--accent-hover));
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
+          line-height: 1.2;
         }
-        .flow-header p {
-          color: var(--text-secondary);
-          font-size: 14px;
+        .kanban-header p {
+          font-size: 12px;
+          color: var(--text-muted);
         }
-        .flow-canvas {
+
+        /* ── Canvas ── */
+        .kanban-canvas {
           flex: 1;
           min-height: 0;
         }
+        .react-flow__renderer { background: transparent !important; }
+        .react-flow__handle { opacity: 0; width: 6px; height: 6px; }
 
-        /* React Flow overrides */
-        .react-flow__renderer {
-          background: transparent !important;
-        }
-        .react-flow__edge-path {
-          stroke-dasharray: 5;
-        }
-        .react-flow__handle {
-          opacity: 0;
-          width: 8px;
-          height: 8px;
-        }
-
-        /* Phase Node */
-        .phase-node {
-          min-width: 280px;
-          background: var(--bg-card);
+        /* ── Lane ── */
+        .kanban-lane {
+          width: 280px;
+          background: rgba(20, 20, 30, 0.85);
           border: 1px solid var(--border);
+          border-top: 3px solid var(--lane-color);
           border-radius: 12px;
-          overflow: hidden;
-          box-shadow: 0 4px 24px rgba(0,0,0,0.4);
-          transition: box-shadow 0.2s;
+          display: flex;
+          flex-direction: column;
+          box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+          backdrop-filter: blur(8px);
         }
-        .phase-node:hover {
-          box-shadow: 0 4px 32px rgba(0,0,0,0.6), 0 0 0 1px var(--phase-color);
+        .kanban-lane:hover {
+          border-color: color-mix(in srgb, var(--lane-color) 40%, var(--border));
         }
 
-        .phase-node-header {
+        /* ── Lane Header ── */
+        .lane-header {
+          padding: 16px 16px 12px;
+          border-bottom: 1px solid var(--border);
+        }
+        .lane-header-top {
           display: flex;
           align-items: center;
           gap: 8px;
-          padding: 12px 16px;
-          border-bottom: 1px solid var(--border);
-          background: rgba(255,255,255,0.02);
+          margin-bottom: 4px;
         }
-        .phase-node-dot {
+        .lane-dot {
           width: 10px;
           height: 10px;
           border-radius: 50%;
-          background: var(--phase-color);
-          box-shadow: 0 0 8px var(--phase-color);
+          background: var(--lane-color);
+          box-shadow: 0 0 10px var(--lane-color);
         }
-        .phase-node-label {
-          font-size: 13px;
+        .lane-title {
+          font-size: 15px;
           font-weight: 700;
           text-transform: uppercase;
-          letter-spacing: 0.8px;
-          color: var(--phase-color);
+          letter-spacing: 1px;
+          color: var(--lane-color);
           flex: 1;
         }
-        .phase-node-count {
-          font-size: 11px;
+        .lane-count {
+          font-size: 12px;
           color: var(--text-muted);
           font-family: 'JetBrains Mono', monospace;
+          background: rgba(255,255,255,0.05);
+          padding: 2px 8px;
+          border-radius: 10px;
+        }
+        .lane-desc {
+          font-size: 11px;
+          color: var(--text-muted);
+          margin-bottom: 10px;
+        }
+        .lane-progress {
+          height: 3px;
+          background: rgba(255,255,255,0.06);
+          border-radius: 2px;
+          overflow: hidden;
+        }
+        .lane-progress-bar {
+          height: 100%;
+          background: var(--lane-color);
+          border-radius: 2px;
+          transition: width 0.4s ease;
         }
 
-        .phase-node-steps {
-          padding: 6px;
+        /* ── Cards ── */
+        .lane-cards {
+          padding: 8px;
           display: flex;
           flex-direction: column;
-          gap: 2px;
+          gap: 6px;
         }
 
-        .phase-step-btn {
+        .kanban-card {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          width: 100%;
+          padding: 12px 14px;
+          background: var(--bg-card);
+          border: 1px solid var(--border);
+          border-radius: 10px;
+          text-align: left;
+          color: var(--text-primary);
+          cursor: pointer;
+          transition: all 0.15s;
+        }
+        .kanban-card:hover {
+          background: var(--bg-hover);
+          border-color: var(--lane-color);
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        .kanban-card.card-completed { opacity: 0.65; }
+        .kanban-card.card-completed:hover { opacity: 1; }
+
+        .kanban-card-top {
           display: flex;
           align-items: center;
           gap: 10px;
-          width: 100%;
-          padding: 10px 12px;
-          background: transparent;
-          border: 1px solid transparent;
-          border-radius: 8px;
-          color: var(--text-primary);
+        }
+        .kanban-card-icon {
+          display: flex;
+          color: var(--lane-color);
+          flex-shrink: 0;
+        }
+        .kanban-card-title {
           font-size: 13px;
-          text-align: left;
-          transition: all 0.15s;
-          cursor: pointer;
+          font-weight: 600;
+          flex: 1;
         }
-        .phase-step-btn:hover {
-          background: var(--bg-hover);
-          border-color: var(--phase-color);
+        .kanban-card-desc {
+          font-size: 11px;
+          color: var(--text-muted);
+          line-height: 1.4;
         }
-        .phase-step-btn.step-completed {
-          opacity: 0.7;
-        }
-        .phase-step-btn.step-completed:hover {
-          opacity: 1;
-        }
-
-        .phase-step-icon {
+        .kanban-card-footer {
           display: flex;
           align-items: center;
-          color: var(--phase-color);
-          flex-shrink: 0;
+          justify-content: space-between;
         }
-        .phase-step-name {
-          flex: 1;
+        .kanban-status {
+          display: flex;
+          align-items: center;
+          gap: 5px;
+          font-size: 11px;
           font-weight: 500;
+          text-transform: capitalize;
         }
-        .phase-step-status {
-          font-size: 10px;
-          flex-shrink: 0;
-        }
-        .phase-step-arrow {
+        .kanban-status.status-completed { color: var(--green); }
+        .kanban-status.status-active { color: var(--accent); }
+        .kanban-status.status-pending { color: var(--text-muted); }
+
+        .kanban-card-arrow {
           color: var(--text-muted);
-          flex-shrink: 0;
           opacity: 0;
           transition: all 0.15s;
         }
-        .phase-step-btn:hover .phase-step-arrow {
+        .kanban-card:hover .kanban-card-arrow {
           opacity: 1;
-          color: var(--phase-color);
+          color: var(--lane-color);
           transform: translateX(2px);
         }
 
-        .phase-handle {
-          background: var(--phase-color) !important;
+        .lane-handle {
+          background: var(--lane-color) !important;
           border: none !important;
         }
       `}</style>
