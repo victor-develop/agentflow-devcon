@@ -4,6 +4,8 @@ import { mockPRD } from '../mockData'
 import { ListToolbar, type ViewMode } from '../components/ListToolbar'
 import { Pagination } from '../components/Pagination'
 import { CommitHistory, HistoryToggle } from '../components/CommitHistory'
+import { ComponentPreview } from '../components/ComponentPreview'
+import { useNavigation } from '../NavigationContext'
 
 type SortKey = 'id' | 'priority' | 'status' | 'title'
 
@@ -11,6 +13,7 @@ const priorityOrder = { high: 0, medium: 1, low: 2 }
 const statusOrder = { 'in-progress': 0, ready: 1, draft: 2, done: 3 }
 
 export function StoriesView() {
+  const { navigateTo } = useNavigation()
   const [search, setSearch] = useState('')
   const [activeFilters, setActiveFilters] = useState<string[]>([])
   const [sort, setSort] = useState<SortKey>('id')
@@ -20,6 +23,7 @@ export function StoriesView() {
   const [expandedStories, setExpandedStories] = useState<Record<string, boolean>>({})
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({})
   const [showHistory, setShowHistory] = useState<Record<string, boolean>>({})
+  const [previewComponent, setPreviewComponent] = useState<string | null>(null)
 
   const allStories = mockPRD.stories
 
@@ -156,7 +160,7 @@ export function StoriesView() {
 
       {/* Expanded mode */}
       {viewMode === 'expanded' && paged.map(story => (
-        <div key={story.id} className="card">
+        <div key={story.id} id={`item-${story.id}`} className="card">
           <div className="card-header" onClick={() => toggleStory(story.id)}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <ChevronRight
@@ -193,18 +197,44 @@ export function StoriesView() {
                   </span>
                 </div>
                 {expandedSections[`${story.id}-design`] && (
-                  <table className="data-table" style={{ marginLeft: 24 }}>
-                    <thead><tr><th>Name</th><th>Type</th><th>Status</th></tr></thead>
-                    <tbody>
-                      {story.designComponents.map(dc => (
-                        <tr key={dc.id}>
-                          <td className="mono" style={{ color: 'var(--text-primary)' }}>{dc.name}</td>
-                          <td><span className={`type-badge type-${dc.type}`}>{dc.type}</span></td>
-                          <td><span className={`tag tag-${dc.status}`}>{dc.status}</span></td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                  <div style={{ marginLeft: 24 }}>
+                    <table className="data-table">
+                      <thead><tr><th>Name</th><th>Type</th><th>Status</th><th style={{ width: 80 }}>Preview</th></tr></thead>
+                      <tbody>
+                        {story.designComponents.map(dc => (
+                          <tr key={dc.id}>
+                            <td>
+                              <span className="nav-link mono" style={{ color: 'var(--text-primary)' }} onClick={() => navigateTo('components', dc.id)}>
+                                {dc.name}
+                              </span>
+                            </td>
+                            <td><span className={`type-badge type-${dc.type}`}>{dc.type}</span></td>
+                            <td><span className={`tag tag-${dc.status}`}>{dc.status}</span></td>
+                            <td>
+                              <span
+                                className="nav-link"
+                                style={{ fontSize: 11 }}
+                                onClick={() => setPreviewComponent(previewComponent === `${story.id}-${dc.id}` ? null : `${story.id}-${dc.id}`)}
+                              >
+                                {previewComponent === `${story.id}-${dc.id}` ? 'hide' : 'show'}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    {/* Inline previews */}
+                    {story.designComponents.map(dc => (
+                      previewComponent === `${story.id}-${dc.id}` && (
+                        <div key={dc.id} style={{ marginTop: 8, marginBottom: 8 }}>
+                          <ComponentPreview
+                            component={{ ...dc, storyId: story.id }}
+                            childComponents={dc.type === 'page' ? story.designComponents.filter(d => d.id !== dc.id) : []}
+                          />
+                        </div>
+                      )
+                    ))}
+                  </div>
                 )}
               </div>
 
@@ -226,7 +256,7 @@ export function StoriesView() {
                     <tbody>
                       {story.testCases.map(tc => (
                         <tr key={tc.id}>
-                          <td className="mono">{tc.id}</td>
+                          <td><span className="nav-link mono" onClick={() => navigateTo('e2e', tc.id)}>{tc.id}</span></td>
                           <td>{tc.title}</td>
                           <td><span className={`type-badge type-${tc.type}`}>{tc.type}</span></td>
                           <td><span className={`tag tag-${tc.status}`}>{tc.status}</span></td>

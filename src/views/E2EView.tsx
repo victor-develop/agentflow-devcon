@@ -3,8 +3,10 @@ import { mockPRD } from '../mockData'
 import { ListToolbar, type ViewMode } from '../components/ListToolbar'
 import { Pagination } from '../components/Pagination'
 import { CommitHistory, HistoryToggle } from '../components/CommitHistory'
+import { useNavigation } from '../NavigationContext'
 
 export function E2EView() {
+  const { navigateTo } = useNavigation()
   const allTests = useMemo(() =>
     mockPRD.stories.flatMap(s =>
       s.testCases.map(tc => ({ ...tc, storyId: s.id, storyTitle: s.title }))
@@ -117,7 +119,7 @@ export function E2EView() {
         </div>
       ) : (
         paged.map(tc => (
-          <div key={tc.id} className="card">
+          <div key={tc.id} id={`item-${tc.id}`} className="card">
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <span className="mono" style={{ fontSize: 12, color: 'var(--text-muted)' }}>{tc.id}</span>
@@ -126,7 +128,7 @@ export function E2EView() {
               <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                 <HistoryToggle itemId={tc.id} isOpen={!!showHistory[tc.id]} onToggle={() => setShowHistory(p => ({ ...p, [tc.id]: !p[tc.id] }))} />
                 <span className={`type-badge type-${tc.type}`}>{tc.type}</span>
-                <span className="mono" style={{ fontSize: 11, color: 'var(--text-muted)' }}>{tc.storyId}</span>
+                <span className="nav-link mono" style={{ fontSize: 11 }} onClick={() => navigateTo('stories', tc.storyId)}>{tc.storyId}</span>
                 <span className={`tag tag-${tc.status}`}>{tc.status}</span>
               </div>
             </div>

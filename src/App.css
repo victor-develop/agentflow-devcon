@@ -205,6 +205,25 @@
 .protocol-rest { background: var(--cyan-bg, rgba(34,211,238,0.1)); color: var(--cyan); }
 .protocol-graphql { background: rgba(236,72,153,0.1); color: #ec4899; }
 
+.highlight-flash {
+  animation: highlightPulse 2s ease-out;
+}
+@keyframes highlightPulse {
+  0% { box-shadow: 0 0 0 2px var(--accent), 0 0 16px rgba(99,102,241,0.4); }
+  100% { box-shadow: none; }
+}
+
+.nav-link {
+  color: var(--accent);
+  cursor: pointer;
+  text-decoration: none;
+  border-bottom: 1px dotted var(--accent);
+  transition: opacity 0.15s;
+}
+.nav-link:hover {
+  opacity: 0.8;
+}
+
 .contract-code {
   font-family: 'JetBrains Mono', monospace;
   font-size: 11px;

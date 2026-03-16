@@ -4,8 +4,10 @@ import { mockContracts, mockPRD } from '../mockData'
 import { ListToolbar, type ViewMode } from '../components/ListToolbar'
 import { Pagination } from '../components/Pagination'
 import { CommitHistory, HistoryToggle } from '../components/CommitHistory'
+import { useNavigation } from '../NavigationContext'
 
 export function ContractsView() {
+  const { navigateTo } = useNavigation()
   const [search, setSearch] = useState('')
   const [activeFilters, setActiveFilters] = useState<string[]>([])
   const [viewMode, setViewMode] = useState<ViewMode>('expanded')
@@ -132,7 +134,7 @@ export function ContractsView() {
         </div>
       ) : (
         paged.map(contract => (
-          <div key={contract.id} className="card">
+          <div key={contract.id} id={`item-${contract.id}`} className="card">
             <div className="card-header" onClick={() => setExpanded(p => ({ ...p, [contract.id]: !p[contract.id] }))}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <ChevronRight size={14} className={`expand-icon ${expanded[contract.id] ? 'expanded' : ''}`} />
@@ -144,7 +146,7 @@ export function ContractsView() {
               </div>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                 <HistoryToggle itemId={contract.id} isOpen={!!showHistory[contract.id]} onToggle={() => setShowHistory(p => ({ ...p, [contract.id]: !p[contract.id] }))} />
-                <span className="mono" style={{ fontSize: 11, color: 'var(--text-muted)' }}>{contract.storyId}</span>
+                <span className="nav-link mono" style={{ fontSize: 11 }} onClick={(e) => { e.stopPropagation(); navigateTo('stories', contract.storyId) }}>{contract.storyId}</span>
                 <span className={`tag tag-${contract.status}`}>{contract.status}</span>
               </div>
             </div>
@@ -154,7 +156,7 @@ export function ContractsView() {
                   {contract.description}
                 </div>
                 <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12 }}>
-                  Story: <span className="mono">{contract.storyId}</span> — {storyMap[contract.storyId] || 'Unknown'}
+                  Story: <span className="nav-link mono" onClick={() => navigateTo('stories', contract.storyId)}>{contract.storyId}</span> — {storyMap[contract.storyId] || 'Unknown'}
                 </div>
 
                 {/* GraphQL Schema */}

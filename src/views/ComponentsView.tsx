@@ -5,8 +5,10 @@ import { ListToolbar, type ViewMode } from '../components/ListToolbar'
 import { Pagination } from '../components/Pagination'
 import { CommitHistory, HistoryToggle } from '../components/CommitHistory'
 import { ComponentPreview } from '../components/ComponentPreview'
+import { useNavigation } from '../NavigationContext'
 
 export function ComponentsView() {
+  const { navigateTo } = useNavigation()
   const allComponents = useMemo(() =>
     mockPRD.stories.flatMap(s =>
       s.designComponents.map(dc => ({
@@ -122,7 +124,7 @@ export function ComponentsView() {
         </div>
       ) : (
         paged.map(c => (
-          <div key={c.id} className="card">
+          <div key={c.id} id={`item-${c.id}`} className="card">
             <div className="card-header" onClick={() => setExpanded(p => ({ ...p, [c.id]: !p[c.id] }))}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <ChevronRight size={14} className={`expand-icon ${expanded[c.id] ? 'expanded' : ''}`} />
@@ -131,14 +133,14 @@ export function ComponentsView() {
               </div>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                 <HistoryToggle itemId={c.id} isOpen={!!showHistory[c.id]} onToggle={() => setShowHistory(p => ({ ...p, [c.id]: !p[c.id] }))} />
-                <span className="mono" style={{ fontSize: 11, color: 'var(--text-muted)' }}>{c.storyId}</span>
+                <span className="nav-link mono" style={{ fontSize: 11 }} onClick={(e) => { e.stopPropagation(); navigateTo('stories', c.storyId) }}>{c.storyId}</span>
                 <span className={`tag tag-${c.status}`}>{c.status}</span>
               </div>
             </div>
             {expanded[c.id] && (
               <div className="card-body">
                 <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 8 }}>
-                  Story: <span style={{ color: 'var(--text-primary)' }}>{c.storyTitle}</span>
+                  Story: <span className="nav-link" style={{ color: 'var(--text-primary)' }} onClick={() => navigateTo('stories', c.storyId)}>{c.storyTitle}</span>
                 </div>
                 <ComponentPreview
                   component={c}

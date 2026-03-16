@@ -4,8 +4,10 @@ import { mockProblems } from '../mockData'
 import { ListToolbar, type ViewMode } from '../components/ListToolbar'
 import { Pagination } from '../components/Pagination'
 import { CommitHistory, HistoryToggle } from '../components/CommitHistory'
+import { useNavigation } from '../NavigationContext'
 
 export function ProblemView() {
+  const { navigateTo } = useNavigation()
   const [search, setSearch] = useState('')
   const [activeFilters, setActiveFilters] = useState<string[]>([])
   const [viewMode, setViewMode] = useState<ViewMode>('expanded')
@@ -114,7 +116,7 @@ export function ProblemView() {
         </div>
       ) : (
         paged.map(prob => (
-          <div key={prob.id} className="card">
+          <div key={prob.id} id={`item-${prob.id}`} className="card">
             <div className="card-header" onClick={() => setExpanded(prev => ({ ...prev, [prob.id]: !prev[prob.id] }))}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <ChevronRight size={16} className={`expand-icon ${expanded[prob.id] ? 'expanded' : ''}`} />
@@ -182,7 +184,7 @@ export function ProblemView() {
                     <div className="section-title">Linked PRDs</div>
                     <div style={{ display: 'flex', gap: 8 }}>
                       {prob.prdIds.map(id => (
-                        <span key={id} className="code-path">{id}</span>
+                        <span key={id} className="nav-link" onClick={(e) => { e.stopPropagation(); navigateTo('prd', id) }}>{id}</span>
                       ))}
                     </div>
                   </div>

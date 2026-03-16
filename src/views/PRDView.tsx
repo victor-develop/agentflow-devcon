@@ -4,8 +4,10 @@ import { mockPRDs } from '../mockData'
 import { ListToolbar, type ViewMode } from '../components/ListToolbar'
 import { Pagination } from '../components/Pagination'
 import { CommitHistory, HistoryToggle } from '../components/CommitHistory'
+import { useNavigation } from '../NavigationContext'
 
 export function PRDView() {
+  const { navigateTo } = useNavigation()
   const [search, setSearch] = useState('')
   const [activeFilters, setActiveFilters] = useState<string[]>([])
   const [viewMode, setViewMode] = useState<ViewMode>('expanded')
@@ -114,7 +116,7 @@ export function PRDView() {
         </div>
       ) : (
         paged.map(prd => (
-          <div key={prd.id} className="card">
+          <div key={prd.id} id={`item-${prd.id}`} className="card">
             <div className="card-header" onClick={() => setExpanded(prev => ({ ...prev, [prd.id]: !prev[prd.id] }))}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <ChevronRight size={16} className={`expand-icon ${expanded[prd.id] ? 'expanded' : ''}`} />
@@ -136,7 +138,7 @@ export function PRDView() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
                     <FileText size={12} style={{ color: 'var(--text-muted)' }} />
                     <span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                      Problem — {prd.problemId}
+                      Problem — <span className="nav-link" onClick={(e) => { e.stopPropagation(); navigateTo('problem', prd.problemId) }}>{prd.problemId}</span>
                     </span>
                   </div>
                   <p style={{ color: 'var(--text-secondary)', fontSize: 13, lineHeight: 1.6 }}>{prd.problem}</p>
@@ -228,8 +230,8 @@ export function PRDView() {
                         <tbody>
                           {prd.stories.map(story => (
                             <tr key={story.id}>
-                              <td className="mono">{story.id}</td>
-                              <td style={{ color: 'var(--text-primary)' }}>{story.title}</td>
+                              <td><span className="nav-link mono" onClick={(e) => { e.stopPropagation(); navigateTo('stories', story.id) }}>{story.id}</span></td>
+                              <td><span className="nav-link" style={{ color: 'var(--text-primary)' }} onClick={(e) => { e.stopPropagation(); navigateTo('stories', story.id) }}>{story.title}</span></td>
                               <td><span className={`tag tag-${story.priority}`}>{story.priority}</span></td>
                               <td><span className={`tag tag-${story.status}`}>{story.status}</span></td>
                             </tr>

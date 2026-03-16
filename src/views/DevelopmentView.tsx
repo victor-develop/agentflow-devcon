@@ -3,8 +3,10 @@ import { mockPRD } from '../mockData'
 import { ListToolbar } from '../components/ListToolbar'
 import { Pagination } from '../components/Pagination'
 import { CommitHistory, HistoryToggle } from '../components/CommitHistory'
+import { useNavigation } from '../NavigationContext'
 
 export function DevelopmentView() {
+  const { navigateTo } = useNavigation()
   const allCode = useMemo(() =>
     mockPRD.stories.flatMap(s =>
       s.codeEntries.map(ce => ({ ...ce, storyId: s.id, storyTitle: s.title }))
@@ -98,7 +100,7 @@ export function DevelopmentView() {
                   <td><span className={`type-badge type-${ce.type}`}>{ce.type}</span></td>
                   <td><span className="code-path">{ce.path}</span></td>
                   <td>{ce.description}</td>
-                  <td className="mono" style={{ fontSize: 11 }}>{ce.storyId}</td>
+                  <td><span className="nav-link mono" style={{ fontSize: 11 }} onClick={() => navigateTo('stories', ce.storyId)}>{ce.storyId}</span></td>
                   <td><HistoryToggle itemId={ce.id} isOpen={!!showHistory[ce.id]} onToggle={() => setShowHistory(p => ({ ...p, [ce.id]: !p[ce.id] }))} /></td>
                 </tr>
                 {showHistory[ce.id] && (
