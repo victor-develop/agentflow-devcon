@@ -189,6 +189,21 @@
 .method-PUT { background: var(--amber-bg); color: var(--amber); }
 .method-DELETE { background: rgba(239,68,68,0.1); color: var(--red); }
 .method-PATCH { background: var(--purple-bg); color: var(--purple); }
+.method-QUERY { background: rgba(236,72,153,0.1); color: #ec4899; }
+.method-MUTATION { background: var(--purple-bg); color: var(--purple); }
+.method-SUBSCRIPTION { background: var(--amber-bg); color: var(--amber); }
+
+.protocol-badge {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  font-weight: 700;
+  padding: 2px 5px;
+  border-radius: 3px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.protocol-rest { background: var(--cyan-bg, rgba(34,211,238,0.1)); color: var(--cyan); }
+.protocol-graphql { background: rgba(236,72,153,0.1); color: #ec4899; }
 
 .expand-icon {
   color: var(--text-muted);

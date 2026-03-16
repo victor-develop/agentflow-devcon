@@ -56,7 +56,8 @@ export interface CodeEntry {
 
 export interface ApiContract {
   id: string
-  method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH'
+  protocol: 'rest' | 'graphql'
+  method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH' | 'QUERY' | 'MUTATION' | 'SUBSCRIPTION'
   endpoint: string
   description: string
   status: 'draft' | 'agreed' | 'implemented'

@@ -29,26 +29,41 @@ export function ContractsView() {
         c.endpoint.toLowerCase().includes(q) ||
         c.description.toLowerCase().includes(q) ||
         c.method.toLowerCase().includes(q) ||
+        c.protocol.toLowerCase().includes(q) ||
         c.storyId.toLowerCase().includes(q)
       )
     }
     if (activeFilters.length > 0) {
-      items = items.filter(c => activeFilters.includes(c.status) || activeFilters.includes(c.method))
+      items = items.filter(c =>
+        activeFilters.includes(c.status) ||
+        activeFilters.includes(c.method) ||
+        activeFilters.includes(c.protocol)
+      )
     }
     return items
   }, [search, activeFilters])
 
   const paged = filtered.slice((page - 1) * pageSize, page * pageSize)
 
-  const methodCounts = { GET: 0, POST: 0, PUT: 0, DELETE: 0, PATCH: 0 }
+  const protocolCounts = { rest: 0, graphql: 0 }
+  const methodCounts: Record<string, number> = {}
   const statusCounts = { draft: 0, agreed: 0, implemented: 0 }
-  mockContracts.forEach(c => { methodCounts[c.method]++; statusCounts[c.status]++ })
+  mockContracts.forEach(c => {
+    protocolCounts[c.protocol]++
+    methodCounts[c.method] = (methodCounts[c.method] || 0) + 1
+    statusCounts[c.status]++
+  })
 
   const filters = [
-    { label: 'GET', value: 'GET', count: methodCounts.GET, color: 'var(--green)' },
-    { label: 'POST', value: 'POST', count: methodCounts.POST, color: 'var(--accent)' },
-    { label: 'PUT', value: 'PUT', count: methodCounts.PUT, color: 'var(--amber)' },
-    { label: 'DELETE', value: 'DELETE', count: methodCounts.DELETE, color: 'var(--red)' },
+    { label: 'REST', value: 'rest', count: protocolCounts.rest, color: 'var(--cyan)' },
+    { label: 'GraphQL', value: 'graphql', count: protocolCounts.graphql, color: 'var(--pink)' },
+    { label: 'GET', value: 'GET', count: methodCounts.GET || 0, color: 'var(--green)' },
+    { label: 'POST', value: 'POST', count: methodCounts.POST || 0, color: 'var(--accent)' },
+    { label: 'PUT', value: 'PUT', count: methodCounts.PUT || 0, color: 'var(--amber)' },
+    { label: 'DELETE', value: 'DELETE', count: methodCounts.DELETE || 0, color: 'var(--red)' },
+    { label: 'Query', value: 'QUERY', count: methodCounts.QUERY || 0, color: 'var(--pink)' },
+    { label: 'Mutation', value: 'MUTATION', count: methodCounts.MUTATION || 0, color: 'var(--purple)' },
+    { label: 'Subscription', value: 'SUBSCRIPTION', count: methodCounts.SUBSCRIPTION || 0, color: 'var(--amber)' },
     { label: 'Implemented', value: 'implemented', count: statusCounts.implemented, color: 'var(--green)' },
     { label: 'Agreed', value: 'agreed', count: statusCounts.agreed, color: 'var(--cyan)' },
     { label: 'Draft', value: 'draft', count: statusCounts.draft },
@@ -59,19 +74,19 @@ export function ContractsView() {
       <div className="stats-grid">
         <div className="stat-card">
           <div className="stat-value">{mockContracts.length}</div>
-          <div className="stat-label">Total Endpoints</div>
+          <div className="stat-label">Total Contracts</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-value" style={{ color: 'var(--cyan)' }}>{protocolCounts.rest}</div>
+          <div className="stat-label">REST</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-value" style={{ color: 'var(--pink, #ec4899)' }}>{protocolCounts.graphql}</div>
+          <div className="stat-label">GraphQL</div>
         </div>
         <div className="stat-card">
           <div className="stat-value" style={{ color: 'var(--green)' }}>{statusCounts.implemented}</div>
           <div className="stat-label">Implemented</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-value" style={{ color: 'var(--cyan)' }}>{statusCounts.agreed}</div>
-          <div className="stat-label">Agreed</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-value" style={{ color: 'var(--text-muted)' }}>{statusCounts.draft}</div>
-          <div className="stat-label">Draft</div>
         </div>
       </div>
 
@@ -85,7 +100,7 @@ export function ContractsView() {
         onViewModeChange={setViewMode}
         totalCount={mockContracts.length}
         filteredCount={filtered.length}
-        placeholder="Search endpoints..."
+        placeholder="Search contracts (rest, graphql, query, mutation...)"
       />
 
       {viewMode === 'compact' ? (
@@ -93,6 +108,7 @@ export function ContractsView() {
           <table className="data-table">
             <thead>
               <tr>
+                <th>Protocol</th>
                 <th>Method</th>
                 <th>Endpoint</th>
                 <th>Description</th>
@@ -103,6 +119,7 @@ export function ContractsView() {
             <tbody>
               {paged.map(c => (
                 <tr key={c.id}>
+                  <td><span className={`protocol-badge protocol-${c.protocol}`}>{c.protocol}</span></td>
                   <td><span className={`method-badge method-${c.method}`}>{c.method}</span></td>
                   <td className="mono" style={{ color: 'var(--text-primary)', fontSize: 12 }}>{c.endpoint}</td>
                   <td>{c.description}</td>
@@ -119,6 +136,7 @@ export function ContractsView() {
             <div className="card-header" onClick={() => setExpanded(p => ({ ...p, [contract.id]: !p[contract.id] }))}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <ChevronRight size={14} className={`expand-icon ${expanded[contract.id] ? 'expanded' : ''}`} />
+                <span className={`protocol-badge protocol-${contract.protocol}`}>{contract.protocol}</span>
                 <span className={`method-badge method-${contract.method}`}>{contract.method}</span>
                 <span className="mono" style={{ fontSize: 13, color: 'var(--text-primary)' }}>
                   {contract.endpoint}
