@@ -14,7 +14,22 @@
 - **Next**: Deploy to GitHub Pages. Then iterate on UI feedback from user.
 
 ## Phase: GitHub Setup & Deployment
-- **Status**: in progress
+- **Status**: done
 - **Date**: 2026-03-15
-- **Summary**: Pushing to GitHub and deploying via GitHub Pages
-- **Next**: Share link for user review
+- **Summary**: Deployed to GitHub Pages at https://victor-develop.github.io/agentflow-devcon/
+
+## Phase: List UX & Scaling
+- **Status**: done
+- **Date**: 2026-03-15
+- **Summary**: Added ListToolbar (search, filter chips, view toggle), Pagination component, expanded mock data to 25 stories, 8 problems, 6 PRDs, 29 API contracts. All list views support compact/expanded modes.
+
+## Phase: Agent Chat Interface
+- **Status**: done
+- **Date**: 2026-03-15
+- **Summary**: Bottom drawer ChatPanel with drag-resize, context-aware per workflow step, mock conversations, markdown rendering, typing indicator.
+
+## Phase: Commit History Integration
+- **Status**: done
+- **Date**: 2026-03-16
+- **Summary**: Added version history to all item types. CommitHistory component with timeline visualization and field-level change diffs. HistoryToggle button on every item card. Mock commit data for Problems, PRDs, Stories, Design Components, API Contracts, Test Cases. Integrated into all 7 views: ProblemView, PRDView, StoriesView, ContractsView, ComponentsView, E2EView, DevelopmentView.
+- **Next**: User review and feedback
