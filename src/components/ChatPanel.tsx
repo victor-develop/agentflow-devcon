@@ -13,6 +13,77 @@ interface ChatMessage {
   action?: { type: string; label: string }
 }
 
+/* ── Per-step prompt shortcuts ──────────────────────── */
+interface Shortcut {
+  label: string
+  template: string
+}
+
+const stepShortcuts: Record<WorkflowStepId, Shortcut[]> = {
+  problem: [
+    { label: '+ Problem', template: 'Add a new problem:\n- Title: \n- Severity: major/minor/critical\n- Hypothesis: ' },
+    { label: 'Add Evidence', template: 'Add evidence to PROB-___:\n- ' },
+    { label: 'Link PRD', template: 'Link PROB-___ to PRD-___' },
+    { label: 'Update Status', template: 'Update PROB-___ status to validated/rejected/active' },
+  ],
+  prd: [
+    { label: '+ PRD', template: 'Create a new PRD:\n- Title: \n- Problem: PROB-___\n- Goals:\n  1. ' },
+    { label: 'Add Goal', template: 'Add a goal to PRD-___:\n- ' },
+    { label: 'Add Non-Goal', template: 'Add a non-goal to PRD-___:\n- ' },
+    { label: 'Add Metric', template: 'Add success metric to PRD-___:\n- ' },
+    { label: 'Approve', template: 'Move PRD-___ to approved status' },
+  ],
+  stories: [
+    { label: '+ Story', template: 'Create a story under PRD-___:\n- Title: \n- Priority: high/medium/low' },
+    { label: 'Update Status', template: 'Move STORY-___ to ready/in-progress/done' },
+    { label: 'Add Component', template: 'Add a design component to STORY-___:\n- Name: \n- Type: page/component/pattern' },
+    { label: 'Split Story', template: 'Split STORY-___ into smaller stories because: ' },
+  ],
+  design: [
+    { label: '+ Token', template: 'Add a new design token:\n- Category: color/spacing/typography/shadow\n- Name: \n- Value: ' },
+    { label: 'Update Scale', template: 'Update the typography/spacing scale:\n- ' },
+    { label: 'Review System', template: 'Review the current design system for consistency issues' },
+  ],
+  components: [
+    { label: '+ Component', template: 'Add a new design component:\n- Name: \n- Type: page/component/pattern\n- Story: STORY-___' },
+    { label: 'Update Status', template: 'Mark DC-___ as ready/implemented' },
+    { label: 'Add Variant', template: 'Add a variant to DC-___:\n- ' },
+    { label: 'Review Preview', template: 'Review the preview for DC-___ and suggest improvements' },
+  ],
+  contracts: [
+    { label: '+ REST', template: 'Add a REST endpoint:\n- Method: GET/POST/PUT/DELETE/PATCH\n- Path: /api/v1/\n- Story: STORY-___\n- Description: ' },
+    { label: '+ GraphQL', template: 'Add a GraphQL operation:\n- Type: Query/Mutation/Subscription\n- Name: \n- Story: STORY-___\n- Schema:\n```graphql\n\n```' },
+    { label: 'Add Schema', template: 'Add request/response schema to API-___:\n```json\n\n```' },
+    { label: 'Agree', template: 'Mark API-___ as agreed' },
+  ],
+  prototype: [
+    { label: '+ Screen', template: 'Add a prototype screen:\n- Name: \n- Route: /\n- Components: DC-___, DC-___' },
+    { label: 'Update %', template: 'Update prototype completion for ___: ___%' },
+    { label: 'Add Preview URL', template: 'Set preview URL for screen ___: https://' },
+  ],
+  e2e: [
+    { label: '+ Test Case', template: 'Add a test case for STORY-___:\n- Title: \n- Type: e2e/integration/unit\n- Steps:\n  1. ' },
+    { label: 'Update Status', template: 'Mark TC-___ as ready/passing/failing' },
+    { label: 'Add Mock Data', template: 'Add mock data for TC-___:\n```json\n\n```' },
+  ],
+  harness: [
+    { label: '+ Script', template: 'Add a test data script:\n- Name: \n- Purpose: \n- Input: \n- Output: ' },
+    { label: '+ Feedback Loop', template: 'Configure AI feedback loop:\n- Trigger: \n- Agent: \n- Validation: ' },
+    { label: 'Run Harness', template: 'Run the test harness for STORY-___ and report results' },
+  ],
+  development: [
+    { label: '+ Module', template: 'Add a code module:\n- Path: src/\n- Type: frontend/backend/shared\n- Story: STORY-___\n- Description: ' },
+    { label: 'Update Status', template: 'Mark CE-___ implementation as complete' },
+    { label: 'Code Review', template: 'Review CE-___ for quality, security, and test coverage' },
+  ],
+  verification: [
+    { label: 'Run Verify', template: 'Run full verification for STORY-___' },
+    { label: 'Re-verify', template: 'Re-verify STORY-___ after fixing: ' },
+    { label: 'Sign Off', template: 'Sign off STORY-___ as verified and ready for release' },
+    { label: 'Report', template: 'Generate a verification report for all stories in PRD-___' },
+  ],
+}
+
 const contextHints: Record<WorkflowStepId, string> = {
   problem: 'I can help define problems, add evidence, set severity, or link PRDs.',
   prd: 'I can create PRDs, add goals/non-goals, define success metrics, or link stories.',
@@ -203,6 +274,36 @@ export function ChatPanel({ activeStep }: Props) {
               </div>
             )}
             <div ref={messagesEndRef} />
+          </div>
+
+          {/* Shortcuts */}
+          <div className="chat-shortcuts">
+            {stepShortcuts[activeStep]?.map(sc => (
+              <button
+                key={sc.label}
+                className="chat-shortcut-btn"
+                onClick={() => {
+                  setInput(sc.template)
+                  setTimeout(() => {
+                    const el = inputRef.current
+                    if (el) {
+                      el.focus()
+                      // place cursor at first blank (___) or end
+                      const pos = sc.template.indexOf('___')
+                      if (pos >= 0) {
+                        el.setSelectionRange(pos, pos + 3)
+                      } else {
+                        el.setSelectionRange(sc.template.length, sc.template.length)
+                      }
+                      el.style.height = 'auto'
+                      el.style.height = el.scrollHeight + 'px'
+                    }
+                  }, 0)
+                }}
+              >
+                {sc.label}
+              </button>
+            ))}
           </div>
 
           {/* Input */}
@@ -467,6 +568,33 @@ export function ChatPanel({ activeStep }: Props) {
         @keyframes spin {
           from { transform: rotate(0deg); }
           to { transform: rotate(360deg); }
+        }
+
+        .chat-shortcuts {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          padding: 8px 16px 0;
+          overflow-x: auto;
+          flex-shrink: 0;
+        }
+        .chat-shortcuts::-webkit-scrollbar { display: none; }
+        .chat-shortcut-btn {
+          flex-shrink: 0;
+          padding: 4px 12px;
+          font-size: 12px;
+          font-weight: 500;
+          color: var(--accent);
+          background: var(--accent-glow);
+          border: 1px solid var(--accent-dim);
+          border-radius: 14px;
+          cursor: pointer;
+          white-space: nowrap;
+          transition: all 0.15s;
+        }
+        .chat-shortcut-btn:hover {
+          background: var(--accent-dim);
+          color: #fff;
         }
 
         .chat-input-area {
