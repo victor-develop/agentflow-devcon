@@ -1,6 +1,7 @@
-import type { ReactNode } from 'react'
-import { Layers, ToggleLeft, Clock, Grid3x3, Mail, Upload, GitBranch, BarChart3, TrendingUp, Table2, LineChart, Timer, Shield, Search, Zap, Send, Bell, Gauge, MessageSquare, Settings, Puzzle } from 'lucide-react'
+import { useState, type ReactNode } from 'react'
+import { Layers, ToggleLeft, Clock, Grid3x3, Mail, Upload, GitBranch, BarChart3, TrendingUp, Table2, LineChart, Timer, Shield, Search, Zap, Send, Bell, Gauge, MessageSquare, Settings, Puzzle, Network, Eye } from 'lucide-react'
 import type { DesignComponent } from '../types'
+import { ComponentTreeCanvas } from './ComponentTreeCanvas'
 
 const s = {
   wire: {
@@ -666,12 +667,44 @@ export function ComponentPreview({ component, childComponents = [] }: Props) {
   const isPage = component.type === 'page'
   const renderPage = pagePreviews[component.name]
   const renderComponent = previews[component.name]
+  const [viewMode, setViewMode] = useState<'preview' | 'tree'>('preview')
 
   return (
     <div style={{ position: 'relative', ...s.wire }}>
       <div style={s.sampleBadge}>SAMPLE</div>
 
-      {isPage && renderPage ? (
+      {isPage && childComponents.length > 0 && (
+        <div style={{ display: 'flex', gap: 4, marginBottom: 12 }}>
+          <button
+            onClick={() => setViewMode('preview')}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 5,
+              padding: '5px 12px', borderRadius: 6, fontSize: 11, fontWeight: 500,
+              border: '1px solid var(--border)', cursor: 'pointer',
+              background: viewMode === 'preview' ? 'var(--accent)' : 'var(--bg-secondary)',
+              color: viewMode === 'preview' ? '#000' : 'var(--text-secondary)',
+            }}
+          >
+            <Eye size={12} /> Preview
+          </button>
+          <button
+            onClick={() => setViewMode('tree')}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 5,
+              padding: '5px 12px', borderRadius: 6, fontSize: 11, fontWeight: 500,
+              border: '1px solid var(--border)', cursor: 'pointer',
+              background: viewMode === 'tree' ? 'var(--accent)' : 'var(--bg-secondary)',
+              color: viewMode === 'tree' ? '#000' : 'var(--text-secondary)',
+            }}
+          >
+            <Network size={12} /> Component Tree
+          </button>
+        </div>
+      )}
+
+      {isPage && viewMode === 'tree' && childComponents.length > 0 ? (
+        <ComponentTreeCanvas component={component} childComponents={childComponents} />
+      ) : isPage && renderPage ? (
         <div>
           {renderPage(childComponents)}
           {childComponents.length > 0 && (
