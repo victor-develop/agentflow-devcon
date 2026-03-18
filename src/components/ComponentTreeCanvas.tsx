@@ -77,6 +77,7 @@ function ChildNode({ data }: NodeProps<Node<ChildNodeData>>) {
       minWidth: 150,
       textAlign: 'center',
       boxShadow: `0 0 12px ${color}22`,
+      cursor: 'pointer',
     }}>
       <Handle
         type="target"
@@ -107,9 +108,10 @@ const nodeTypes: NodeTypes = {
 interface Props {
   component: DesignComponent
   childComponents: DesignComponent[]
+  onNodeClick?: (componentId: string) => void
 }
 
-export function ComponentTreeCanvas({ component, childComponents }: Props) {
+export function ComponentTreeCanvas({ component, childComponents, onNodeClick }: Props) {
   const { nodes, edges } = useMemo(() => {
     const cols = childComponents.length
     const spacing = 200
@@ -163,6 +165,12 @@ export function ComponentTreeCanvas({ component, childComponents }: Props) {
     setTimeout(() => instance.fitView({ padding: 0.3 }), 50)
   }, [])
 
+  const handleNodeClick = useCallback((_: unknown, node: Node) => {
+    if (node.id !== 'page' && onNodeClick) {
+      onNodeClick(node.id)
+    }
+  }, [onNodeClick])
+
   if (childComponents.length === 0) return null
 
   return (
@@ -179,6 +187,7 @@ export function ComponentTreeCanvas({ component, childComponents }: Props) {
         edges={edges}
         nodeTypes={nodeTypes}
         onInit={onInit}
+        onNodeClick={handleNodeClick}
         fitView
         fitViewOptions={{ padding: 0.3 }}
         minZoom={0.3}

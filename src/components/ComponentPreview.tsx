@@ -121,12 +121,19 @@ function WireNav({ items, active }: { items: string[]; active: number }) {
   )
 }
 
-function ChildComponentChip({ name, status }: { name: string; type: string; status: string }) {
+function ChildComponentChip({ name, status, onClick }: { name: string; type: string; status: string; onClick?: () => void }) {
   return (
-    <div style={{
-      display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px',
-      borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg-secondary)', fontSize: 11,
-    }}>
+    <div
+      onClick={onClick}
+      style={{
+        display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px',
+        borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg-secondary)', fontSize: 11,
+        cursor: onClick ? 'pointer' : 'default',
+        transition: 'border-color 0.15s',
+      }}
+      onMouseEnter={e => onClick && (e.currentTarget.style.borderColor = 'var(--accent)')}
+      onMouseLeave={e => onClick && (e.currentTarget.style.borderColor = 'var(--border)')}
+    >
       <Puzzle size={10} style={{ color: 'var(--cyan)' }} />
       <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{name}</span>
       <span className={`tag tag-${status}`} style={{ fontSize: 9, padding: '1px 5px' }}>{status}</span>
@@ -661,9 +668,10 @@ const pagePreviews: Record<string, (children: DesignComponent[]) => ReactNode> =
 interface Props {
   component: DesignComponent & { storyId: string }
   childComponents?: DesignComponent[]
+  onComponentClick?: (componentId: string) => void
 }
 
-export function ComponentPreview({ component, childComponents = [] }: Props) {
+export function ComponentPreview({ component, childComponents = [], onComponentClick }: Props) {
   const isPage = component.type === 'page'
   const renderPage = pagePreviews[component.name]
   const renderComponent = previews[component.name]
@@ -703,7 +711,7 @@ export function ComponentPreview({ component, childComponents = [] }: Props) {
       )}
 
       {isPage && viewMode === 'tree' && childComponents.length > 0 ? (
-        <ComponentTreeCanvas component={component} childComponents={childComponents} />
+        <ComponentTreeCanvas component={component} childComponents={childComponents} onNodeClick={onComponentClick} />
       ) : isPage && renderPage ? (
         <div>
           {renderPage(childComponents)}
@@ -712,7 +720,7 @@ export function ComponentPreview({ component, childComponents = [] }: Props) {
               <div style={{ ...s.label, marginBottom: 8 }}>Embedded Components</div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                 {childComponents.map(ch => (
-                  <ChildComponentChip key={ch.id} name={ch.name} type={ch.type} status={ch.status} />
+                  <ChildComponentChip key={ch.id} name={ch.name} type={ch.type} status={ch.status} onClick={() => onComponentClick?.(ch.id)} />
                 ))}
               </div>
             </div>

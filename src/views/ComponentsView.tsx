@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import { ChevronRight } from 'lucide-react'
 import { mockPRD } from '../mockData'
 import { ListToolbar, type ViewMode } from '../components/ListToolbar'
@@ -48,6 +48,34 @@ export function ComponentsView() {
   }, [allComponents, search, activeFilters])
 
   const paged = filtered.slice((page - 1) * pageSize, page * pageSize)
+
+  const handleComponentClick = useCallback((componentId: string) => {
+    // Find the component in the filtered list
+    const idx = filtered.findIndex(c => c.id === componentId)
+    if (idx === -1) {
+      // Component might be filtered out — search in all components
+      const allIdx = allComponents.findIndex(c => c.id === componentId)
+      if (allIdx === -1) return
+      // Clear filters and search to show all
+      setSearch('')
+      setActiveFilters([])
+      const targetPage = Math.floor(allIdx / pageSize) + 1
+      setPage(targetPage)
+    } else {
+      const targetPage = Math.floor(idx / pageSize) + 1
+      setPage(targetPage)
+    }
+    setExpanded(p => ({ ...p, [componentId]: true }))
+    // Scroll after DOM updates
+    setTimeout(() => {
+      const el = document.getElementById(`item-${componentId}`)
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        el.classList.add('highlight-flash')
+        setTimeout(() => el.classList.remove('highlight-flash'), 1500)
+      }
+    }, 50)
+  }, [filtered, allComponents, pageSize])
 
   const typeCounts = { page: 0, component: 0, pattern: 0 }
   const statusCounts = { draft: 0, ready: 0, implemented: 0 }
@@ -145,6 +173,7 @@ export function ComponentsView() {
                 <ComponentPreview
                   component={c}
                   childComponents={c.type === 'page' ? c.siblingComponents : []}
+                  onComponentClick={handleComponentClick}
                 />
                 {showHistory[c.id] && (
                   <div>
