@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react'
 import { WorkflowNav } from './components/WorkflowNav'
 import { Sidebar } from './components/Sidebar'
+import { EntityListView } from './components/EntityListView'
 import { ProblemView } from './views/ProblemView'
 import { PRDView } from './views/PRDView'
 import { StoriesView } from './views/StoriesView'
@@ -15,6 +16,7 @@ import { VerificationView } from './views/VerificationView'
 import { StepSelector } from './components/StepSelector'
 import { ChatPanel } from './components/ChatPanel'
 import { NavigationContext } from './NavigationContext'
+import { DATA_MODE } from './data'
 import type { WorkflowStepId } from './types'
 import { workflowSteps } from './mockData'
 import './App.css'
@@ -22,7 +24,9 @@ import './App.css'
 export let highlightedItemId: string | null = null
 export let highlightGeneration = 0
 
-const viewMap: Record<WorkflowStepId, React.FC> = {
+// In mock mode (GitHub Pages demo), use the handcrafted views
+// In API mode (CLI server), use generic EntityListView for live data
+const mockViewMap: Record<WorkflowStepId, React.FC> = {
   problem: ProblemView,
   prd: PRDView,
   stories: StoriesView,
@@ -34,6 +38,21 @@ const viewMap: Record<WorkflowStepId, React.FC> = {
   harness: HarnessView,
   development: DevelopmentView,
   verification: VerificationView,
+}
+
+// Map step IDs to process IDs used in .agentflow/
+const stepToProcessId: Record<WorkflowStepId, string> = {
+  problem: 'problem',
+  prd: 'prd',
+  stories: 'stories',
+  design: 'design-system',
+  components: 'components',
+  contracts: 'contracts',
+  prototype: 'prototype',
+  e2e: 'e2e',
+  harness: 'harness',
+  development: 'development',
+  verification: 'verification',
 }
 
 export default function App() {
@@ -60,8 +79,9 @@ export default function App() {
     return <StepSelector onSelect={setActiveStep} />
   }
 
-  const ActiveView = viewMap[activeStep]
   const currentStep = workflowSteps.find(s => s.id === activeStep)!
+  const useApiView = DATA_MODE === 'api'
+  const ActiveMockView = mockViewMap[activeStep]
 
   return (
     <NavigationContext.Provider value={{ navigateTo }}>
@@ -96,7 +116,10 @@ export default function App() {
                 </div>
               </div>
               <div className="content-body">
-                <ActiveView />
+                {useApiView
+                  ? <EntityListView processId={stepToProcessId[activeStep]} />
+                  : <ActiveMockView />
+                }
               </div>
             </main>
             <ChatPanel activeStep={activeStep} />
