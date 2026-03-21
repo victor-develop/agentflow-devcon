@@ -16,8 +16,10 @@ export function startWatcher(
 ) {
   const debounceTimers = new Map<string, ReturnType<typeof setTimeout>>()
 
-  const watcher = watch(`${agentflowDir}/**/*.yaml`, {
+  const watcher = watch(agentflowDir, {
     ignoreInitial: true,
+    persistent: true,
+    recursive: true,
     awaitWriteFinish: { stabilityThreshold: 50, pollInterval: 20 },
   })
 
@@ -106,9 +108,18 @@ export function startWatcher(
     }
   }
 
-  watcher.on('change', handleChange)
-  watcher.on('add', handleChange)
-  watcher.on('unlink', handleUnlink)
+  watcher.on('change', (path) => {
+    if (!path.endsWith('.yaml')) return
+    handleChange(path)
+  })
+  watcher.on('add', (path) => {
+    if (!path.endsWith('.yaml')) return
+    handleChange(path)
+  })
+  watcher.on('unlink', (path) => {
+    if (!path.endsWith('.yaml')) return
+    handleUnlink(path)
+  })
 
   return watcher
 }
