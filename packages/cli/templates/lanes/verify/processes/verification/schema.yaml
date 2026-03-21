@@ -1,0 +1,10 @@
+entity: VerificationResult
+primaryField: title
+display:
+  listTitle: title
+  listBadges: [status]
+fields:
+  title: { type: string, required: true, searchable: true, display: heading }
+  status: { type: enum, values: [pending, pass, fail], filterable: true, display: badge, colorMap: { pending: gray, pass: green, fail: red } }
+  result: { type: text, display: block }
+  evidence: { type: list, items: string }

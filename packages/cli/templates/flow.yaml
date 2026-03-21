@@ -1,0 +1,53 @@
+lanes:
+  - id: define
+    label: Define
+    phase: define
+    processes:
+      - id: problem
+        label: Problem Discovery
+        shortLabel: Problem
+      - id: prd
+        label: Product Requirements
+        shortLabel: PRD
+      - id: stories
+        label: Story Breakdown
+        shortLabel: Stories
+
+  - id: design
+    label: Design
+    phase: design
+    processes:
+      - id: design-system
+        label: Design System
+        shortLabel: Design Sys
+      - id: components
+        label: Design Components
+        shortLabel: Components
+      - id: contracts
+        label: API Contracts
+        shortLabel: Contracts
+
+  - id: develop
+    label: Develop
+    phase: develop
+    processes:
+      - id: prototype
+        label: Prototype
+        shortLabel: Prototype
+      - id: e2e
+        label: E2E Test Cases
+        shortLabel: E2E Tests
+
+  - id: verify
+    label: Verify
+    phase: verify
+    processes:
+      - id: harness
+        label: Harness Engineering
+        shortLabel: Harness
+      - id: development
+        label: Production Code
+        shortLabel: Code
+      - id: verification
+        label: Verification
+        shortLabel: Verify

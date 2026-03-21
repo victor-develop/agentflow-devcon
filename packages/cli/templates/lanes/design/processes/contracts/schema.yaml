@@ -1,0 +1,57 @@
+entity: ApiContract
+primaryField: endpoint
+display:
+  listTitle: endpoint
+  listBadges: [protocol, method, status]
+
+fields:
+  endpoint:
+    type: string
+    required: true
+    searchable: true
+    display: heading
+  protocol:
+    type: enum
+    values: [rest, graphql]
+    filterable: true
+    display: badge
+    colorMap:
+      rest: cyan
+      graphql: pink
+  method:
+    type: enum
+    values: [GET, POST, PUT, DELETE, PATCH, QUERY, MUTATION, SUBSCRIPTION]
+    filterable: true
+    display: badge
+    colorMap:
+      GET: green
+      POST: accent
+      PUT: amber
+      DELETE: red
+      QUERY: pink
+      MUTATION: purple
+      SUBSCRIPTION: amber
+  description:
+    type: text
+    searchable: true
+    display: block
+  status:
+    type: enum
+    values: [draft, agreed, implemented]
+    filterable: true
+    display: badge
+  requestBody:
+    type: code
+    language: json
+    display: code
+    condition: { field: protocol, eq: rest }
+  responseBody:
+    type: code
+    language: json
+    display: code
+    condition: { field: protocol, eq: rest }
+  schema:
+    type: code
+    language: graphql
+    display: code
+    condition: { field: protocol, eq: graphql }

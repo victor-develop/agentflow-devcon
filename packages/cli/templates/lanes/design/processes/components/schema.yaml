@@ -1,0 +1,11 @@
+entity: Component
+primaryField: name
+display:
+  listTitle: name
+  listBadges: [type, status]
+fields:
+  name: { type: string, required: true, searchable: true, display: heading }
+  type: { type: enum, values: [page, component, pattern], filterable: true, display: badge }
+  status: { type: enum, values: [draft, ready, implemented], filterable: true, display: badge, colorMap: { draft: gray, ready: blue, implemented: green } }
+  figmaUrl: { type: url, display: link }
+  description: { type: text, searchable: true, display: block }

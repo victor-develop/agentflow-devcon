@@ -5,9 +5,15 @@
   "bin": {
     "agentflow-devcon": "./dist/index.js"
   },
+  "files": [
+    "dist",
+    "templates",
+    "web-dist"
+  ],
   "scripts": {
     "dev": "tsup --watch",
     "build": "tsup",
+    "prepublishOnly": "pnpm run build && cd ../web && pnpm run build && cp -r dist ../cli/web-dist",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

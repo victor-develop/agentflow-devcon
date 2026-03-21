@@ -1,7 +1,12 @@
 import { Hono } from 'hono'
 import { serve } from '@hono/node-server'
-import { join } from 'node:path'
+import { serveStatic } from '@hono/node-server/serve-static'
+import { join, dirname } from 'node:path'
+import { existsSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
 import type { Server } from 'node:http'
+
+const __dirname = dirname(fileURLToPath(import.meta.url))
 import { parseProject, type ParsedProject } from './parser.js'
 import { buildSearchIndex, buildRelationIndex, type ProjectIndex } from './indexer.js'
 import { readChangelog } from './changelog.js'
@@ -97,6 +102,12 @@ export function createApp(root: string) {
 export async function startServer(opts: ServerOptions): Promise<Server> {
   const { app, project } = createApp(opts.root)
   const agentflowDir = join(opts.root, '.agentflow')
+
+  // Serve bundled frontend (production / npx mode)
+  const webDistDir = opts.webDistDir ?? join(__dirname, '..', 'web-dist')
+  if (existsSync(webDistDir)) {
+    app.use('/*', serveStatic({ root: webDistDir }))
+  }
 
   const server = serve({
     fetch: app.fetch,

@@ -2,6 +2,7 @@ import { Command } from 'commander'
 import { resolve, join } from 'node:path'
 import { existsSync } from 'node:fs'
 import { startServer } from './server.js'
+import { scaffoldAgentflow } from './init.js'
 
 const program = new Command()
   .name('agentflow-devcon')
@@ -26,9 +27,7 @@ program
   .command('init [path]')
   .description('Initialize .agentflow scaffold in a project')
   .action(async (path = '.') => {
-    const root = resolve(path)
-    console.log(`Initializing .agentflow in ${root}`)
-    // TODO: scaffoldAgentflow(root)
+    await scaffoldAgentflow(resolve(path))
   })
 
 program.parse()

@@ -1,0 +1,11 @@
+entity: DesignToken
+primaryField: name
+display:
+  listTitle: name
+  listBadges: [category, status]
+fields:
+  name: { type: string, required: true, searchable: true, display: heading }
+  category: { type: enum, values: [color, typography, spacing, shadow], filterable: true, display: badge }
+  status: { type: enum, values: [draft, active, deprecated], filterable: true, display: badge, colorMap: { draft: gray, active: green, deprecated: red } }
+  value: { type: string, display: code }
+  preview: { type: string, display: color-swatch }

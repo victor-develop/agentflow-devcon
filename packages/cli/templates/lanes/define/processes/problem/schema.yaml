@@ -1,0 +1,51 @@
+entity: Problem
+primaryField: title
+display:
+  listTitle: title
+  listBadges: [status, severity]
+
+fields:
+  title:
+    type: string
+    required: true
+    searchable: true
+    display: heading
+  status:
+    type: enum
+    values: [draft, validated, rejected, active]
+    filterable: true
+    display: badge
+    colorMap:
+      draft: muted
+      validated: green
+      rejected: red
+      active: accent
+  severity:
+    type: enum
+    values: [critical, major, minor]
+    filterable: true
+    display: badge
+    colorMap:
+      critical: red
+      major: amber
+      minor: muted
+  statement:
+    type: text
+    searchable: true
+    display: block
+  hypothesis:
+    type: text
+    display: block
+  evidence:
+    type: list
+    items: { type: string }
+    display: block
+  metrics:
+    type: list
+    items:
+      type: object
+      properties:
+        label: { type: string }
+        value: { type: string }
+        color: { type: string }
+    display: metric

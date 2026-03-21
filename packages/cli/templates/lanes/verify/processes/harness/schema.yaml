@@ -1,0 +1,10 @@
+entity: HarnessTask
+primaryField: title
+display:
+  listTitle: title
+  listBadges: [status]
+fields:
+  title: { type: string, required: true, searchable: true, display: heading }
+  status: { type: enum, values: [pending, running, complete, failed], filterable: true, display: badge, colorMap: { pending: gray, running: blue, complete: green, failed: red } }
+  description: { type: text, searchable: true, display: block }
+  script: { type: code, language: bash }

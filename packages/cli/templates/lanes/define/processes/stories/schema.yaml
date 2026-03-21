@@ -1,0 +1,39 @@
+entity: Story
+primaryField: title
+display:
+  listTitle: title
+  listBadges: [status, priority]
+
+fields:
+  title:
+    type: string
+    required: true
+    searchable: true
+    display: heading
+  status:
+    type: enum
+    values: [draft, ready, in-progress, done]
+    filterable: true
+    display: badge
+    colorMap:
+      draft: muted
+      ready: cyan
+      in-progress: accent
+      done: green
+  priority:
+    type: enum
+    values: [high, medium, low]
+    filterable: true
+    display: badge
+    colorMap:
+      high: red
+      medium: amber
+      low: muted
+  description:
+    type: text
+    searchable: true
+    display: block
+  acceptanceCriteria:
+    type: list
+    items: { type: string }
+    display: block

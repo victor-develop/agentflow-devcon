@@ -1,0 +1,38 @@
+entity: PRD
+primaryField: title
+display:
+  listTitle: title
+  listBadges: [status]
+
+fields:
+  title:
+    type: string
+    required: true
+    searchable: true
+    display: heading
+  status:
+    type: enum
+    values: [draft, review, approved, archived]
+    filterable: true
+    display: badge
+    colorMap:
+      draft: muted
+      review: amber
+      approved: green
+      archived: muted
+  problem:
+    type: text
+    searchable: true
+    display: block
+  goals:
+    type: list
+    items: { type: string }
+    display: block
+  nonGoals:
+    type: list
+    items: { type: string }
+    display: block
+  successMetrics:
+    type: list
+    items: { type: string }
+    display: block

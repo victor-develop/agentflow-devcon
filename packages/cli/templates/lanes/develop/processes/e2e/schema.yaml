@@ -1,0 +1,10 @@
+entity: TestCase
+primaryField: title
+display:
+  listTitle: title
+  listBadges: [type, status]
+fields:
+  title: { type: string, required: true, searchable: true, display: heading }
+  type: { type: enum, values: [e2e, integration, unit], filterable: true, display: badge }
+  status: { type: enum, values: [draft, ready, passing, failing], filterable: true, display: badge, colorMap: { draft: gray, ready: blue, passing: green, failing: red } }
+  steps: { type: list, items: string }

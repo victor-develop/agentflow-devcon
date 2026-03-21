@@ -1,0 +1,11 @@
+entity: CodeModule
+primaryField: name
+display:
+  listTitle: name
+  listBadges: [type, status]
+fields:
+  name: { type: string, required: true, searchable: true, display: heading }
+  type: { type: enum, values: [frontend, backend, shared], filterable: true, display: badge }
+  status: { type: enum, values: [planned, in-progress, complete], filterable: true, display: badge, colorMap: { planned: gray, in-progress: blue, complete: green } }
+  path: { type: string }
+  description: { type: text, searchable: true, display: block }
