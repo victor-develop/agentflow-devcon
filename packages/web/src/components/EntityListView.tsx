@@ -185,9 +185,10 @@ function formatLabel(name: string): string {
 
 interface Props {
   processId: string
+  renderItemExtra?: (entity: Entity, allEntities: Entity[]) => React.ReactNode
 }
 
-export function EntityListView({ processId }: Props) {
+export function EntityListView({ processId, renderItemExtra }: Props) {
   const { data, loading } = useProcessData(processId)
 
   const [search, setSearch] = useState('')
@@ -363,6 +364,8 @@ export function EntityListView({ processId }: Props) {
                 {bodyFields.map(([name, field]) =>
                   <div key={name}>{renderField(name, field, item[name], item)}</div>
                 )}
+
+                {renderItemExtra?.(item, items)}
 
                 <RelatedItems entityId={item.id} />
 

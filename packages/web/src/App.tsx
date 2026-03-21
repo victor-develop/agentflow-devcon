@@ -1,7 +1,8 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import { WorkflowNav } from './components/WorkflowNav'
 import { Sidebar } from './components/Sidebar'
 import { EntityListView } from './components/EntityListView'
+import { ComponentPreview } from './components/ComponentPreview'
 import { ProblemView } from './views/ProblemView'
 import { PRDView } from './views/PRDView'
 import { StoriesView } from './views/StoriesView'
@@ -17,7 +18,8 @@ import { StepSelector } from './components/StepSelector'
 import { ChatPanel } from './components/ChatPanel'
 import { NavigationContext } from './NavigationContext'
 import { DATA_MODE } from './data'
-import type { WorkflowStepId } from './types'
+import type { WorkflowStepId, DesignComponent } from './types'
+import type { Entity } from '@agentflow-devcon/shared'
 import { workflowSteps } from './mockData'
 import './App.css'
 
@@ -53,6 +55,27 @@ const stepToProcessId: Record<WorkflowStepId, string> = {
   harness: 'harness',
   development: 'development',
   verification: 'verification',
+}
+
+function entityToDesignComponent(entity: Entity): DesignComponent & { storyId: string } {
+  return {
+    id: entity.id,
+    name: String(entity.name ?? ''),
+    type: (entity.type as DesignComponent['type']) ?? 'component',
+    status: (entity.status as DesignComponent['status']) ?? 'draft',
+    figmaUrl: entity.figmaUrl ? String(entity.figmaUrl) : undefined,
+    storyId: '',
+  }
+}
+
+function renderComponentPreview(entity: Entity, allEntities: Entity[]) {
+  const comp = entityToDesignComponent(entity)
+  const children = comp.type === 'page'
+    ? allEntities
+        .filter(e => e.id !== entity.id && String(e.type) !== 'page')
+        .map(entityToDesignComponent)
+    : []
+  return <ComponentPreview component={comp} childComponents={children} />
 }
 
 export default function App() {
@@ -117,7 +140,10 @@ export default function App() {
               </div>
               <div className="content-body">
                 {useApiView
-                  ? <EntityListView processId={stepToProcessId[activeStep]} />
+                  ? <EntityListView
+                      processId={stepToProcessId[activeStep]}
+                      renderItemExtra={activeStep === 'components' ? renderComponentPreview : undefined}
+                    />
                   : <ActiveMockView />
                 }
               </div>
