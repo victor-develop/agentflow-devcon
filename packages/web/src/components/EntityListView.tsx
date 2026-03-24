@@ -1,13 +1,30 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import { ChevronRight } from 'lucide-react'
 import { ListToolbar, type ViewMode } from './ListToolbar'
 import { Pagination } from './Pagination'
 import { CommitHistory, HistoryToggle } from './CommitHistory'
-import { useProcessData, useRelations } from '../data'
+import { useProcessData, useRelations, DATA_MODE } from '../data'
+import { useNavigation } from '../NavigationContext'
+import { apiClient } from '../data/api-client'
+import type { WorkflowStepId } from '../types'
 import type {
   FieldSchema,
   Entity,
 } from '@agentflow-devcon/shared'
+
+const processToStep: Record<string, WorkflowStepId> = {
+  problem: 'problem',
+  prd: 'prd',
+  stories: 'stories',
+  'design-system': 'design',
+  components: 'components',
+  contracts: 'contracts',
+  prototype: 'prototype',
+  e2e: 'e2e',
+  harness: 'harness',
+  development: 'development',
+  verification: 'verification',
+}
 
 // ── Color maps ──
 
@@ -395,6 +412,31 @@ export function EntityListView({ processId, renderItemExtra }: Props) {
 
 // ── Related Items (from relations API) ──
 
+function RelationLink({ itemId, label }: { itemId: string; label: string }) {
+  const { navigateTo } = useNavigation()
+
+  const handleClick = useCallback(async () => {
+    if (DATA_MODE === 'mock') return
+    try {
+      const { processId } = await apiClient.locate(itemId)
+      const step = processToStep[processId]
+      if (step) navigateTo(step, itemId)
+    } catch {
+      // item not found — ignore
+    }
+  }, [itemId, navigateTo])
+
+  return (
+    <span
+      className="nav-link"
+      style={{ marginRight: 8, cursor: 'pointer' }}
+      onClick={handleClick}
+    >
+      {label}
+    </span>
+  )
+}
+
 function RelatedItems({ entityId }: { entityId: string }) {
   const { data } = useRelations(entityId)
 
@@ -406,18 +448,14 @@ function RelatedItems({ entityId }: { entityId: string }) {
       {data.outgoing.length > 0 && (
         <div style={{ marginBottom: 8 }}>
           {data.outgoing.map((rel, i) => (
-            <span key={i} className="nav-link" style={{ marginRight: 8 }}>
-              → {rel.type}: {rel.to}
-            </span>
+            <RelationLink key={i} itemId={rel.to} label={`→ ${rel.type}: ${rel.to}`} />
           ))}
         </div>
       )}
       {data.incoming.length > 0 && (
         <div>
           {data.incoming.map((rel, i) => (
-            <span key={i} className="nav-link" style={{ marginRight: 8 }}>
-              ← {rel.type}: {rel.from}
-            </span>
+            <RelationLink key={i} itemId={rel.from} label={`← ${rel.type}: ${rel.from}`} />
           ))}
         </div>
       )}

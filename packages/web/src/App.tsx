@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react'
+import { useState, useCallback } from 'react'
 import { WorkflowNav } from './components/WorkflowNav'
 import { Sidebar } from './components/Sidebar'
 import { EntityListView } from './components/EntityListView'
@@ -16,6 +16,7 @@ import { DevelopmentView } from './views/DevelopmentView'
 import { VerificationView } from './views/VerificationView'
 import { StepSelector } from './components/StepSelector'
 import { ChatPanel } from './components/ChatPanel'
+import { EventsFeed } from './components/EventsFeed'
 import { NavigationContext } from './NavigationContext'
 import { DATA_MODE } from './data'
 import type { WorkflowStepId, DesignComponent } from './types'
@@ -99,7 +100,10 @@ export default function App() {
   }, [])
 
   if (!activeStep) {
-    return <StepSelector onSelect={setActiveStep} />
+    return <>
+      <StepSelector onSelect={setActiveStep} />
+      <EventsFeed />
+    </>
   }
 
   const currentStep = workflowSteps.find(s => s.id === activeStep)!
@@ -148,9 +152,10 @@ export default function App() {
                 }
               </div>
             </main>
-            <ChatPanel activeStep={activeStep} />
+            <ChatPanel activeStep={activeStep} processId={stepToProcessId[activeStep]} />
           </div>
         </div>
+        <EventsFeed />
       </div>
     </NavigationContext.Provider>
   )

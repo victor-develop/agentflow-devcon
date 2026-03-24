@@ -15,6 +15,12 @@ async function fetchJSON<T>(path: string): Promise<T> {
   return res.json() as Promise<T>
 }
 
+export interface ChatRequest {
+  processId: string
+  message: string
+  history?: Array<{ role: 'user' | 'agent'; content: string }>
+}
+
 export const apiClient = {
   getFlow: () => fetchJSON<FlowConfig>('/api/flow'),
 
@@ -32,8 +38,21 @@ export const apiClient = {
   getRelations: (entityId: string) =>
     fetchJSON<EntityRelations>(`/api/relations?entity=${entityId}`),
 
+  locate: (itemId: string) =>
+    fetchJSON<{ processId: string }>(`/api/locate/${itemId}`),
+
   search: (query: string) =>
     fetchJSON<{ results: SearchResult[] }>(`/api/search?q=${encodeURIComponent(query)}`).then(
       (r) => r.results,
     ),
+
+  sendChat: async (req: ChatRequest) => {
+    const res = await fetch(`${BASE}/api/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(req),
+    })
+    if (!res.ok) throw new Error(`Chat API ${res.status}`)
+    return res.json() as Promise<{ ok: boolean }>
+  },
 }
