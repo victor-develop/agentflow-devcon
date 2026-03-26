@@ -151,6 +151,12 @@ function renderMetricList(name: string, value: unknown): React.ReactNode {
   )
 }
 
+function hashCode(s: string): number {
+  let h = 0
+  for (let i = 0; i < s.length; i++) h = ((h << 5) - h + s.charCodeAt(i)) | 0
+  return h
+}
+
 function renderPreview(_name: string, value: unknown): React.ReactNode {
   const html = String(value ?? '')
   if (!html) return null
@@ -158,6 +164,7 @@ function renderPreview(_name: string, value: unknown): React.ReactNode {
     <div style={{ marginBottom: 16 }}>
       <div className="section-title">Preview</div>
       <iframe
+        key={hashCode(html)}
         srcDoc={html}
         sandbox="allow-scripts"
         style={{
