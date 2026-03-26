@@ -1,8 +1,9 @@
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import {
   MessageSquare, ChevronDown, ChevronUp, Send,
   Bot, User, Sparkles, Loader2, GripHorizontal,
-  Terminal, Zap, FileCode, AlertCircle
+  Terminal, Zap, FileCode, AlertCircle,
+  Plus, Trash2, Clock
 } from 'lucide-react'
 import { DATA_MODE } from '../data/config'
 import { apiClient } from '../data/api-client'
@@ -83,6 +84,44 @@ const contextHints: Record<WorkflowStepId, string> = {
 const mockRespond = (step: string) =>
   `This is a prototype — in production, this would route to your configured AI agent with full context of the **${step}** workflow state.`
 
+/* ── Session persistence ─────────────────────────── */
+
+interface ChatSession {
+  id: string
+  name: string
+  step: WorkflowStepId
+  createdAt: number
+  messages: ChatMessage[]
+}
+
+const STORAGE_KEY = 'agentflow-chat-sessions'
+
+function loadSessions(): ChatSession[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY)
+    return raw ? JSON.parse(raw) : []
+  } catch { return [] }
+}
+
+function saveSessions(sessions: ChatSession[]) {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions)) } catch { /* quota */ }
+}
+
+function createSession(step: WorkflowStepId): ChatSession {
+  return {
+    id: `s-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+    name: new Date().toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
+    step,
+    createdAt: Date.now(),
+    messages: [{
+      id: 'sys-0',
+      role: 'system',
+      content: contextHints[step],
+      timestamp: '',
+    }],
+  }
+}
+
 interface Props {
   activeStep: WorkflowStepId
   processId?: string
@@ -121,39 +160,104 @@ export function ChatPanel({ activeStep, processId }: Props) {
   const [isOpen, setIsOpen] = useState(false)
   const [height, setHeight] = useState(340)
   const [input, setInput] = useState('')
-  const [messages, setMessages] = useState<ChatMessage[]>([])
+  const [sessions, setSessions] = useState<ChatSession[]>(loadSessions)
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(null)
+  const [showSessionList, setShowSessionList] = useState(false)
   const [isStreaming, setIsStreaming] = useState(false)
   const streamBufferRef = useRef('')
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const dragRef = useRef<{ startY: number; startH: number } | null>(null)
 
-  // Reset messages when step changes
+  // Get/create active session for this step
+  const stepSessions = useMemo(() =>
+    sessions.filter(s => s.step === activeStep).sort((a, b) => b.createdAt - a.createdAt),
+    [sessions, activeStep]
+  )
+
+  const activeSession = useMemo(() => {
+    if (activeSessionId) {
+      const found = sessions.find(s => s.id === activeSessionId && s.step === activeStep)
+      if (found) return found
+    }
+    return stepSessions[0] || null
+  }, [sessions, activeSessionId, activeStep, stepSessions])
+
+  // Auto-create session on step switch if none exists
   useEffect(() => {
-    setMessages([{
-      id: 'sys-0',
-      role: 'system',
-      content: contextHints[activeStep],
-      timestamp: '',
-    }])
+    if (stepSessions.length === 0) {
+      const s = createSession(activeStep)
+      setSessions(prev => { const next = [...prev, s]; saveSessions(next); return next })
+      setActiveSessionId(s.id)
+    } else if (!activeSession || activeSession.step !== activeStep) {
+      setActiveSessionId(stepSessions[0].id)
+    }
     setIsStreaming(false)
     streamBufferRef.current = ''
+  }, [activeStep]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const messages = activeSession?.messages ?? []
+
+  const setMessages = useCallback((updater: ChatMessage[] | ((prev: ChatMessage[]) => ChatMessage[])) => {
+    setSessions(prev => {
+      const next = prev.map(s => {
+        if (s.id !== (activeSession?.id)) return s
+        const newMsgs = typeof updater === 'function' ? updater(s.messages) : updater
+        return { ...s, messages: newMsgs }
+      })
+      saveSessions(next)
+      return next
+    })
+  }, [activeSession?.id])
+
+  const handleNewSession = useCallback(() => {
+    const s = createSession(activeStep)
+    setSessions(prev => { const next = [...prev, s]; saveSessions(next); return next })
+    setActiveSessionId(s.id)
+    setShowSessionList(false)
   }, [activeStep])
+
+  const handleDeleteSession = useCallback((sessionId: string) => {
+    setSessions(prev => {
+      const next = prev.filter(s => s.id !== sessionId)
+      saveSessions(next)
+      return next
+    })
+    if (activeSessionId === sessionId) {
+      const remaining = stepSessions.filter(s => s.id !== sessionId)
+      if (remaining.length > 0) {
+        setActiveSessionId(remaining[0].id)
+      } else {
+        const s = createSession(activeStep)
+        setSessions(prev => { const next = [...prev, s]; saveSessions(next); return next })
+        setActiveSessionId(s.id)
+      }
+    }
+  }, [activeSessionId, stepSessions, activeStep])
+
+  const handleSwitchSession = useCallback((sessionId: string) => {
+    setActiveSessionId(sessionId)
+    setShowSessionList(false)
+  }, [])
 
   // Scroll to bottom on new messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, isStreaming])
 
+  // Keep setMessages ref current for WS handler
+  const setMessagesRef = useRef(setMessages)
+  setMessagesRef.current = setMessages
+
   // Register WS handler for streaming chunks
   useEffect(() => {
     ensureChatWS()
 
     const handler: ChunkHandler = (msg) => {
+      const update = setMessagesRef.current
       if (msg.type === 'chat:chunk') {
         streamBufferRef.current += msg.text
-        // Update the last agent message in-place
-        setMessages(prev => {
+        update(prev => {
           const last = prev[prev.length - 1]
           if (last?.role === 'agent') {
             return [
@@ -161,7 +265,6 @@ export function ChatPanel({ activeStep, processId }: Props) {
               { ...last, content: streamBufferRef.current },
             ]
           }
-          // First chunk — create agent message
           return [
             ...prev,
             {
@@ -173,8 +276,7 @@ export function ChatPanel({ activeStep, processId }: Props) {
           ]
         })
       } else if (msg.type === 'chat:activity') {
-        setMessages(prev => {
-          // Replace last activity of same family, or append new
+        update(prev => {
           const last = prev[prev.length - 1]
           const actMsg: ChatMessage = {
             id: `act-${Date.now()}-${Math.random().toString(36).slice(2, 5)}`,
@@ -185,7 +287,6 @@ export function ChatPanel({ activeStep, processId }: Props) {
             phase: msg.phase,
             toolName: msg.toolName,
           }
-          // Collapse consecutive tool-started into one row
           if (last?.role === 'activity' && last.family === msg.family && msg.phase === 'started') {
             return [...prev.slice(0, -1), actMsg]
           }
@@ -296,6 +397,45 @@ export function ChatPanel({ activeStep, processId }: Props) {
           <div className="chat-drag-handle" onMouseDown={onDragStart}>
             <GripHorizontal size={16} />
           </div>
+
+          {/* Session bar */}
+          <div className="chat-session-bar">
+            <button className="chat-session-current" onClick={() => setShowSessionList(!showSessionList)}>
+              <Clock size={11} />
+              <span>{activeSession?.name ?? 'New Chat'}</span>
+              <span className="chat-session-count">{stepSessions.length}</span>
+              <ChevronDown size={10} style={{ transform: showSessionList ? 'rotate(180deg)' : undefined, transition: 'transform 0.15s' }} />
+            </button>
+            <button className="chat-session-new" onClick={handleNewSession} title="New session">
+              <Plus size={12} />
+            </button>
+          </div>
+
+          {/* Session list dropdown */}
+          {showSessionList && (
+            <div className="chat-session-list">
+              {stepSessions.map(s => (
+                <div
+                  key={s.id}
+                  className={`chat-session-item ${s.id === activeSession?.id ? 'active' : ''}`}
+                  onClick={() => handleSwitchSession(s.id)}
+                >
+                  <div className="chat-session-item-info">
+                    <span className="chat-session-item-name">{s.name}</span>
+                    <span className="chat-session-item-count">{s.messages.filter(m => m.role === 'user').length} msgs</span>
+                  </div>
+                  {stepSessions.length > 1 && (
+                    <button
+                      className="chat-session-delete"
+                      onClick={(e) => { e.stopPropagation(); handleDeleteSession(s.id) }}
+                    >
+                      <Trash2 size={11} />
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
 
           {/* Messages */}
           <div className="chat-messages">
@@ -468,6 +608,85 @@ export function ChatPanel({ activeStep, processId }: Props) {
           transition: opacity 0.1s;
         }
         .chat-drag-handle:hover { opacity: 1; }
+        .chat-session-bar {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          padding: 4px 12px;
+          border-bottom: 1px solid var(--border);
+          flex-shrink: 0;
+        }
+        .chat-session-current {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          padding: 3px 10px;
+          font-size: 11px;
+          color: var(--text-secondary);
+          background: var(--bg-tertiary);
+          border: 1px solid var(--border);
+          border-radius: 6px;
+          cursor: pointer;
+          transition: all 0.15s;
+        }
+        .chat-session-current:hover { background: var(--bg-hover); color: var(--text-primary); }
+        .chat-session-count {
+          background: var(--accent-glow);
+          color: var(--accent);
+          padding: 0 5px;
+          border-radius: 8px;
+          font-size: 10px;
+          font-weight: 600;
+        }
+        .chat-session-new {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 24px;
+          height: 24px;
+          border: 1px solid var(--border);
+          border-radius: 6px;
+          background: transparent;
+          color: var(--text-muted);
+          cursor: pointer;
+          transition: all 0.15s;
+        }
+        .chat-session-new:hover { background: var(--accent-glow); color: var(--accent); border-color: var(--accent-dim); }
+        .chat-session-list {
+          position: relative;
+          border-bottom: 1px solid var(--border);
+          background: var(--bg-secondary);
+          max-height: 180px;
+          overflow-y: auto;
+          flex-shrink: 0;
+        }
+        .chat-session-item {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 6px 14px;
+          cursor: pointer;
+          transition: background 0.1s;
+        }
+        .chat-session-item:hover { background: var(--bg-hover); }
+        .chat-session-item.active { background: var(--accent-glow); }
+        .chat-session-item-info { display: flex; align-items: center; gap: 8px; }
+        .chat-session-item-name { font-size: 12px; color: var(--text-primary); }
+        .chat-session-item-count { font-size: 10px; color: var(--text-muted); }
+        .chat-session-delete {
+          display: flex;
+          align-items: center;
+          padding: 2px;
+          border: none;
+          border-radius: 4px;
+          background: transparent;
+          color: var(--text-muted);
+          cursor: pointer;
+          opacity: 0;
+          transition: all 0.1s;
+        }
+        .chat-session-item:hover .chat-session-delete { opacity: 1; }
+        .chat-session-delete:hover { color: var(--red); background: rgba(255,59,48,0.1); }
         .chat-messages {
           flex: 1;
           overflow-y: auto;
