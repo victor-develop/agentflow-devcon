@@ -5,6 +5,7 @@ import { ListToolbar, type ViewMode } from '../components/ListToolbar'
 import { Pagination } from '../components/Pagination'
 import { CommitHistory, HistoryToggle } from '../components/CommitHistory'
 import { useNavigation } from '../NavigationContext'
+import { useNavigationTarget } from '../hooks/useNavigationTarget'
 
 export function ProblemView() {
   const { navigateTo } = useNavigation()
@@ -38,6 +39,8 @@ export function ProblemView() {
   }, [search, activeFilters])
 
   const paged = filtered.slice((page - 1) * pageSize, page * pageSize)
+
+  useNavigationTarget(mockProblems, filtered, pageSize, setPage, setSearch, setActiveFilters, setExpanded)
 
   const statusCounts = { draft: 0, validated: 0, rejected: 0, active: 0 }
   const severityCounts = { critical: 0, major: 0, minor: 0 }

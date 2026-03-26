@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import { WorkflowNav } from './components/WorkflowNav'
 import { Sidebar } from './components/Sidebar'
 import { EntityListView } from './components/EntityListView'
@@ -24,8 +24,6 @@ import type { Entity } from '@agentflow-devcon/shared'
 import { workflowSteps } from './mockData'
 import './App.css'
 
-export let highlightedItemId: string | null = null
-export let highlightGeneration = 0
 
 // In mock mode (GitHub Pages demo), use the handcrafted views
 // In API mode (CLI server), use generic EntityListView for live data
@@ -83,22 +81,18 @@ function renderComponentPreview(entity: Entity, allEntities: Entity[]) {
 export default function App() {
   const [activeStep, setActiveStep] = useState<WorkflowStepId | null>(null)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [targetItemId, setTargetItemId] = useState<string | null>(null)
+  const [targetGeneration, setTargetGeneration] = useState(0)
 
   const navigateTo = useCallback((step: WorkflowStepId, itemId?: string) => {
-    highlightedItemId = itemId || null
-    highlightGeneration++
     setActiveStep(step)
     if (itemId) {
-      setTimeout(() => {
-        const el = document.getElementById(`item-${itemId}`)
-        if (el) {
-          el.scrollIntoView({ behavior: 'smooth', block: 'center' })
-          el.classList.add('highlight-flash')
-          setTimeout(() => el.classList.remove('highlight-flash'), 2000)
-        }
-      }, 100)
+      setTargetItemId(itemId)
+      setTargetGeneration(g => g + 1)
     }
   }, [])
+
+  const navCtx = useMemo(() => ({ navigateTo, targetItemId, targetGeneration }), [navigateTo, targetItemId, targetGeneration])
 
   if (!activeStep) {
     return <>
@@ -112,7 +106,7 @@ export default function App() {
   const ActiveMockView = mockViewMap[activeStep]
 
   return (
-    <NavigationContext.Provider value={{ navigateTo }}>
+    <NavigationContext.Provider value={navCtx}>
       <div className="app-layout">
         <WorkflowNav
           steps={workflowSteps}

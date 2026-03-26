@@ -5,6 +5,7 @@ import { ListToolbar, type ViewMode } from '../components/ListToolbar'
 import { Pagination } from '../components/Pagination'
 import { CommitHistory, HistoryToggle } from '../components/CommitHistory'
 import { useNavigation } from '../NavigationContext'
+import { useNavigationTarget } from '../hooks/useNavigationTarget'
 
 export function PRDView() {
   const { navigateTo } = useNavigation()
@@ -40,6 +41,8 @@ export function PRDView() {
   }, [search, activeFilters])
 
   const paged = filtered.slice((page - 1) * pageSize, page * pageSize)
+
+  useNavigationTarget(mockPRDs, filtered, pageSize, setPage, setSearch, setActiveFilters, setExpanded)
 
   const statusCounts = { draft: 0, review: 0, approved: 0, archived: 0 }
   mockPRDs.forEach(p => statusCounts[p.status]++)

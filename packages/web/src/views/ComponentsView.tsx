@@ -6,6 +6,7 @@ import { Pagination } from '../components/Pagination'
 import { CommitHistory, HistoryToggle } from '../components/CommitHistory'
 import { ComponentPreview } from '../components/ComponentPreview'
 import { useNavigation } from '../NavigationContext'
+import { useNavigationTarget } from '../hooks/useNavigationTarget'
 
 export function ComponentsView() {
   const { navigateTo } = useNavigation()
@@ -76,6 +77,8 @@ export function ComponentsView() {
       }
     }, 50)
   }, [filtered, allComponents, pageSize])
+
+  useNavigationTarget(allComponents, filtered, pageSize, setPage, setSearch, setActiveFilters, setExpanded)
 
   const typeCounts = { page: 0, component: 0, pattern: 0 }
   const statusCounts = { draft: 0, ready: 0, implemented: 0 }

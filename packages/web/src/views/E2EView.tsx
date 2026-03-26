@@ -4,6 +4,7 @@ import { ListToolbar, type ViewMode } from '../components/ListToolbar'
 import { Pagination } from '../components/Pagination'
 import { CommitHistory, HistoryToggle } from '../components/CommitHistory'
 import { useNavigation } from '../NavigationContext'
+import { useNavigationTarget } from '../hooks/useNavigationTarget'
 
 export function E2EView() {
   const { navigateTo } = useNavigation()
@@ -40,6 +41,8 @@ export function E2EView() {
   }, [allTests, search, activeFilters])
 
   const paged = filtered.slice((page - 1) * pageSize, page * pageSize)
+
+  useNavigationTarget(allTests, filtered, pageSize, setPage, setSearch, setActiveFilters)
 
   const typeCounts = { e2e: 0, integration: 0, unit: 0 }
   const statusCounts = { draft: 0, ready: 0, passing: 0, failing: 0 }

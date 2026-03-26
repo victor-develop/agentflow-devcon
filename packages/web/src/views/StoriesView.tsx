@@ -6,6 +6,7 @@ import { Pagination } from '../components/Pagination'
 import { CommitHistory, HistoryToggle } from '../components/CommitHistory'
 import { ComponentPreview } from '../components/ComponentPreview'
 import { useNavigation } from '../NavigationContext'
+import { useNavigationTarget } from '../hooks/useNavigationTarget'
 
 type SortKey = 'id' | 'priority' | 'status' | 'title'
 
@@ -78,6 +79,8 @@ export function StoriesView() {
     { label: 'Draft', value: 'draft', count: statusCounts.draft },
     { label: 'Done', value: 'done', count: statusCounts.done, color: 'var(--green)' },
   ]
+
+  useNavigationTarget(allStories, filtered, pageSize, setPage, setSearch, setActiveFilters, setExpandedStories)
 
   const toggleStory = (id: string) =>
     setExpandedStories(prev => ({ ...prev, [id]: !prev[id] }))
