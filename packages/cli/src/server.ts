@@ -1,8 +1,8 @@
 import { Hono } from 'hono'
 import { serve } from '@hono/node-server'
 import { serveStatic } from '@hono/node-server/serve-static'
-import { join, dirname } from 'node:path'
-import { existsSync } from 'node:fs'
+import { join, dirname, relative } from 'node:path'
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { spawn as spawnChild } from 'node:child_process'
 import type { Server } from 'node:http'
@@ -109,7 +109,65 @@ export function createApp(root: string) {
     return c.json({ error: 'not found' }, 404)
   })
 
+  // ── File explorer endpoints ──
+
+  app.get('/api/files/tree', (c) => {
+    return c.json(buildFileTree(agentflowDir, agentflowDir))
+  })
+
+  app.get('/api/files/read/*', (c) => {
+    const filePath = c.req.path.replace('/api/files/read/', '')
+    const fullPath = join(agentflowDir, filePath)
+    // Prevent path traversal
+    if (!fullPath.startsWith(agentflowDir)) {
+      return c.json({ error: 'forbidden' }, 403)
+    }
+    if (!existsSync(fullPath) || statSync(fullPath).isDirectory()) {
+      return c.json({ error: 'not found' }, 404)
+    }
+    try {
+      const content = readFileSync(fullPath, 'utf-8')
+      return c.json({ path: filePath, content })
+    } catch {
+      return c.json({ error: 'read failed' }, 500)
+    }
+  })
+
   return { app, project, searchIndex, relationIndex }
+}
+
+// ── File tree builder ──
+
+interface FileTreeNode {
+  name: string
+  path: string
+  type: 'file' | 'dir'
+  children?: FileTreeNode[]
+}
+
+function buildFileTree(dir: string, root: string): FileTreeNode[] {
+  const entries = readdirSync(dir, { withFileTypes: true })
+    .filter(e => !e.name.startsWith('.'))
+    .sort((a, b) => {
+      // Dirs first, then files
+      if (a.isDirectory() && !b.isDirectory()) return -1
+      if (!a.isDirectory() && b.isDirectory()) return 1
+      return a.name.localeCompare(b.name)
+    })
+
+  return entries.map(entry => {
+    const fullPath = join(dir, entry.name)
+    const relPath = relative(root, fullPath)
+    if (entry.isDirectory()) {
+      return {
+        name: entry.name,
+        path: relPath,
+        type: 'dir' as const,
+        children: buildFileTree(fullPath, root),
+      }
+    }
+    return { name: entry.name, path: relPath, type: 'file' as const }
+  })
 }
 
 // ── Chat helpers ──
@@ -164,39 +222,88 @@ function schemaToYaml(schema: ProcessSchema): string {
   return lines.join('\n')
 }
 
-function spawnClaude(
-  prompt: string,
-  cwd: string,
-  onChunk: (text: string) => void,
-  onDone: () => void,
-  onError: (err: string) => void,
-) {
+import { createInterface } from 'node:readline'
+
+function truncate(s: string, max: number): string {
+  return s.length > max ? s.slice(0, max) + '…' : s
+}
+
+interface ClaudeCallbacks {
+  onChunk: (text: string) => void
+  onDone: () => void
+  onError: (err: string) => void
+  onActivity: (family: string, phase: string, content: string, toolName?: string) => void
+}
+
+function spawnClaude(prompt: string, cwd: string, cb: ClaudeCallbacks) {
   const bin = process.env.CLAUDE_BIN || 'claude'
-  const child = spawnChild(bin, ['--dangerously-skip-permissions', '-p', prompt], {
+  const child = spawnChild(bin, [
+    '--dangerously-skip-permissions',
+    '-p',
+    '--verbose',
+    '--output-format', 'stream-json',
+    prompt,
+  ], {
     cwd,
     env: { ...process.env, TERM: 'dumb' },
     stdio: ['ignore', 'pipe', 'pipe'],
   })
 
-  child.stdout!.on('data', (data: Buffer) => {
-    onChunk(data.toString('utf-8'))
+  const rl = createInterface({ input: child.stdout! })
+
+  rl.on('line', (line) => {
+    if (!line.trim()) return
+    let record: Record<string, unknown>
+    try { record = JSON.parse(line) } catch { return }
+
+    const type = record.type as string
+
+    if (type === 'assistant') {
+      const msg = record.message as { content?: Array<{ type: string; text?: string; name?: string; input?: unknown; thinking?: string }> } | undefined
+      if (msg?.content) {
+        for (const block of msg.content) {
+          if (block.type === 'text' && block.text) {
+            cb.onChunk(block.text)
+          } else if (block.type === 'tool_use') {
+            const toolName = block.name || 'tool'
+            const inputStr = block.input ? truncate(JSON.stringify(block.input), 80) : ''
+            cb.onActivity('tool', 'started', `${toolName} ${inputStr}`, toolName)
+          } else if (block.type === 'thinking' && block.thinking) {
+            cb.onActivity('reasoning', 'completed', truncate(block.thinking, 120))
+          }
+        }
+      }
+    } else if (type === 'result') {
+      const subtype = record.subtype as string | undefined
+      if (subtype !== 'success' && record.errors) {
+        cb.onError(String(record.errors))
+      }
+      const cost = record.total_cost_usd as number | undefined
+      const duration = record.duration_ms as number | undefined
+      const parts: string[] = ['Done']
+      if (duration) parts.push(`${(duration / 1000).toFixed(1)}s`)
+      if (cost) parts.push(`$${cost.toFixed(4)}`)
+      cb.onActivity('status', 'completed', parts.join(' · '))
+    } else if (type === 'system') {
+      const subtype = record.subtype as string
+      if (subtype === 'init') {
+        const model = record.model as string | undefined
+        if (model) cb.onActivity('status', 'started', `Agent: ${model}`)
+      }
+    }
   })
 
   let stderr = ''
-  child.stderr!.on('data', (data: Buffer) => {
-    stderr += data.toString('utf-8')
-  })
+  child.stderr!.on('data', (data: Buffer) => { stderr += data.toString('utf-8') })
 
   child.on('close', (code) => {
-    if (code !== 0 && stderr) {
-      onError(stderr)
-    }
-    onDone()
+    if (code !== 0 && stderr) cb.onError(stderr)
+    cb.onDone()
   })
 
   child.on('error', (err) => {
-    onError(`Failed to spawn claude: ${err.message}`)
-    onDone()
+    cb.onError(`Failed to spawn claude: ${err.message}`)
+    cb.onDone()
   })
 
   return child
@@ -247,13 +354,13 @@ export async function startServer(opts: ServerOptions): Promise<Server> {
     conversationParts.push(`User: ${message}`)
     const fullPrompt = conversationParts.join('\n')
 
-    spawnClaude(
-      fullPrompt,
-      opts.root,
-      (text) => broadcast({ type: 'chat:chunk', text }),
-      () => broadcast({ type: 'chat:done' }),
-      (err) => broadcast({ type: 'chat:chunk', text: `\n\n**Error:** ${err}` }),
-    )
+    spawnClaude(fullPrompt, opts.root, {
+      onChunk: (text) => broadcast({ type: 'chat:chunk', text }),
+      onDone: () => broadcast({ type: 'chat:done' }),
+      onError: (err) => broadcast({ type: 'chat:chunk', text: `\n\n**Error:** ${err}` }),
+      onActivity: (family, phase, content, toolName) =>
+        broadcast({ type: 'chat:activity', family: family as 'tool', phase, content, toolName }),
+    })
 
     return c.json({ ok: true })
   })

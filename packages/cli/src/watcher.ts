@@ -110,14 +110,17 @@ export function startWatcher(
 
   watcher.on('change', (path) => {
     if (!path.endsWith('.yaml')) return
+    callbacks.onMessage({ type: 'file:changed', filePath: relative(agentflowDir, path), changeType: 'change' })
     handleChange(path)
   })
   watcher.on('add', (path) => {
     if (!path.endsWith('.yaml')) return
+    callbacks.onMessage({ type: 'file:changed', filePath: relative(agentflowDir, path), changeType: 'add' })
     handleChange(path)
   })
   watcher.on('unlink', (path) => {
     if (!path.endsWith('.yaml')) return
+    callbacks.onMessage({ type: 'file:changed', filePath: relative(agentflowDir, path), changeType: 'unlink' })
     handleUnlink(path)
   })
 

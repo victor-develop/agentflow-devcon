@@ -95,6 +95,8 @@ function renderField(
           </pre>
         </div>
       )
+    case 'preview':
+      return renderPreview(name, value)
     case 'color-swatch':
       return (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
@@ -145,6 +147,27 @@ function renderMetricList(name: string, value: unknown): React.ReactNode {
           </div>
         ))}
       </div>
+    </div>
+  )
+}
+
+function renderPreview(_name: string, value: unknown): React.ReactNode {
+  const html = String(value ?? '')
+  if (!html) return null
+  return (
+    <div style={{ marginBottom: 16 }}>
+      <div className="section-title">Preview</div>
+      <iframe
+        srcDoc={html}
+        sandbox="allow-scripts"
+        style={{
+          width: '100%',
+          height: 280,
+          border: '1px solid var(--border)',
+          borderRadius: 8,
+          background: '#fff',
+        }}
+      />
     </div>
   )
 }

@@ -15,6 +15,13 @@ async function fetchJSON<T>(path: string): Promise<T> {
   return res.json() as Promise<T>
 }
 
+export interface FileTreeNode {
+  name: string
+  path: string
+  type: 'file' | 'dir'
+  children?: FileTreeNode[]
+}
+
 export interface ChatRequest {
   processId: string
   message: string
@@ -45,6 +52,11 @@ export const apiClient = {
     fetchJSON<{ results: SearchResult[] }>(`/api/search?q=${encodeURIComponent(query)}`).then(
       (r) => r.results,
     ),
+
+  getFileTree: () => fetchJSON<FileTreeNode[]>('/api/files/tree'),
+
+  getFileContent: (filePath: string) =>
+    fetchJSON<{ path: string; content: string }>(`/api/files/read/${filePath}`),
 
   sendChat: async (req: ChatRequest) => {
     const res = await fetch(`${BASE}/api/chat`, {

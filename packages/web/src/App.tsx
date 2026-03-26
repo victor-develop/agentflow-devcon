@@ -16,7 +16,7 @@ import { DevelopmentView } from './views/DevelopmentView'
 import { VerificationView } from './views/VerificationView'
 import { StepSelector } from './components/StepSelector'
 import { ChatPanel } from './components/ChatPanel'
-import { EventsFeed } from './components/EventsFeed'
+import { FileExplorer } from './components/FileExplorer'
 import { NavigationContext } from './NavigationContext'
 import { DATA_MODE } from './data'
 import type { WorkflowStepId, DesignComponent } from './types'
@@ -57,6 +57,7 @@ const stepToProcessId: Record<WorkflowStepId, string> = {
   development: 'development',
   verification: 'verification',
 }
+
 
 function entityToDesignComponent(entity: Entity): DesignComponent & { storyId: string } {
   return {
@@ -102,7 +103,7 @@ export default function App() {
   if (!activeStep) {
     return <>
       <StepSelector onSelect={setActiveStep} />
-      <EventsFeed />
+      <FileExplorer />
     </>
   }
 
@@ -155,7 +156,7 @@ export default function App() {
             <ChatPanel activeStep={activeStep} processId={stepToProcessId[activeStep]} />
           </div>
         </div>
-        <EventsFeed />
+        <FileExplorer />
       </div>
     </NavigationContext.Provider>
   )

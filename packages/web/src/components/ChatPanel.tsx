@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import {
   MessageSquare, ChevronDown, ChevronUp, Send,
-  Bot, User, Sparkles, Loader2, GripHorizontal
+  Bot, User, Sparkles, Loader2, GripHorizontal,
+  Terminal, Zap, FileCode, AlertCircle
 } from 'lucide-react'
 import { DATA_MODE } from '../data/config'
 import { apiClient } from '../data/api-client'
@@ -10,9 +11,12 @@ import type { WorkflowStepId } from '../types'
 
 interface ChatMessage {
   id: string
-  role: 'user' | 'agent' | 'system'
+  role: 'user' | 'agent' | 'system' | 'activity'
   content: string
   timestamp: string
+  family?: string
+  phase?: string
+  toolName?: string
 }
 
 /* ── Per-step prompt shortcuts ──────────────────────── */
@@ -102,7 +106,7 @@ function ensureChatWS() {
     ws.onmessage = (event) => {
       try {
         const msg = JSON.parse(event.data) as WSMessage
-        if (msg.type === 'chat:chunk' || msg.type === 'chat:done') {
+        if (msg.type === 'chat:chunk' || msg.type === 'chat:done' || msg.type === 'chat:activity') {
           for (const h of chatWSHandlers) h(msg)
         }
       } catch { /* ignore */ }
@@ -167,6 +171,25 @@ export function ChatPanel({ activeStep, processId }: Props) {
               timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
             },
           ]
+        })
+      } else if (msg.type === 'chat:activity') {
+        setMessages(prev => {
+          // Replace last activity of same family, or append new
+          const last = prev[prev.length - 1]
+          const actMsg: ChatMessage = {
+            id: `act-${Date.now()}-${Math.random().toString(36).slice(2, 5)}`,
+            role: 'activity',
+            content: msg.content,
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            family: msg.family,
+            phase: msg.phase,
+            toolName: msg.toolName,
+          }
+          // Collapse consecutive tool-started into one row
+          if (last?.role === 'activity' && last.family === msg.family && msg.phase === 'started') {
+            return [...prev.slice(0, -1), actMsg]
+          }
+          return [...prev, actMsg]
         })
       } else if (msg.type === 'chat:done') {
         setIsStreaming(false)
@@ -278,6 +301,20 @@ export function ChatPanel({ activeStep, processId }: Props) {
           <div className="chat-messages">
             {messages.map(msg => (
               <div key={msg.id} className={`chat-msg chat-msg-${msg.role}`}>
+                {msg.role === 'activity' ? (
+                  <div className="chat-activity-row">
+                    <span className="chat-activity-icon">
+                      {msg.family === 'tool' ? <Terminal size={11} /> :
+                       msg.family === 'reasoning' ? <Zap size={11} /> :
+                       msg.family === 'file' ? <FileCode size={11} /> :
+                       msg.family === 'error' ? <AlertCircle size={11} /> :
+                       <Sparkles size={11} />}
+                    </span>
+                    <span className="chat-activity-text">{msg.content}</span>
+                    {msg.phase === 'started' && <Loader2 size={10} className="chat-typing-spinner" />}
+                  </div>
+                ) : (
+                <>
                 {msg.role !== 'system' && (
                   <div className="chat-msg-avatar">
                     {msg.role === 'agent' ? <Bot size={14} /> : <User size={14} />}
@@ -306,6 +343,8 @@ export function ChatPanel({ activeStep, processId }: Props) {
                     </>
                   )}
                 </div>
+                </>
+                )}
               </div>
             ))}
             {isStreaming && messages[messages.length - 1]?.role !== 'agent' && (
@@ -598,6 +637,30 @@ export function ChatPanel({ activeStep, processId }: Props) {
         .chat-send-btn.active { background: var(--accent); color: white; }
         .chat-send-btn.active:hover { background: var(--accent-hover); }
         .chat-send-btn:disabled { cursor: default; }
+        .chat-activity-row {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          align-self: flex-start;
+          padding: 3px 10px;
+          border-radius: 10px;
+          background: var(--bg-tertiary);
+          font-size: 11px;
+          color: var(--text-muted);
+          animation: chatFadeIn 0.15s ease;
+          max-width: 100%;
+        }
+        .chat-activity-icon {
+          display: flex;
+          align-items: center;
+          color: var(--cyan);
+          flex-shrink: 0;
+        }
+        .chat-activity-text {
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
       `}</style>
     </>
   )

@@ -1,5 +1,5 @@
-import { useState, type ReactNode } from 'react'
-import { Layers, ToggleLeft, Clock, Grid3x3, Mail, Upload, GitBranch, BarChart3, TrendingUp, Table2, LineChart, Timer, Shield, Search, Zap, Send, Bell, Gauge, MessageSquare, Settings, Puzzle, Network, Eye } from 'lucide-react'
+import { type ReactNode } from 'react'
+import { Layers, ToggleLeft, Clock, Grid3x3, Mail, Upload, GitBranch, BarChart3, TrendingUp, Table2, LineChart, Timer, Shield, Search, Zap, Send, Bell, Gauge, MessageSquare, Settings, Puzzle, Network } from 'lucide-react'
 import type { DesignComponent } from '../types'
 import { ComponentTreeCanvas } from './ComponentTreeCanvas'
 
@@ -121,7 +121,7 @@ function WireNav({ items, active }: { items: string[]; active: number }) {
   )
 }
 
-function ChildComponentChip({ name, status, onClick }: { name: string; type: string; status: string; onClick?: () => void }) {
+export function ChildComponentChip({ name, status, onClick }: { name: string; type: string; status: string; onClick?: () => void }) {
   return (
     <div
       onClick={onClick}
@@ -490,7 +490,7 @@ const previews: Record<string, () => ReactNode> = {
 
 // ─── Page-level previews (with nav + layout) ───────────────
 
-const pagePreviews: Record<string, (children: DesignComponent[]) => ReactNode> = {
+export const pagePreviews: Record<string, (children: DesignComponent[]) => ReactNode> = {
   PreferencesPage: (children) => (
     <div>
       <WireNav items={['Channels', 'Quiet Hours', 'Priority']} active={0} />
@@ -673,68 +673,17 @@ interface Props {
 
 export function ComponentPreview({ component, childComponents = [], onComponentClick }: Props) {
   const isPage = component.type === 'page'
-  const renderPage = pagePreviews[component.name]
-  const renderComponent = previews[component.name]
-  const [viewMode, setViewMode] = useState<'preview' | 'tree'>('preview')
+
+  // Only render Component Tree for page-type components with children
+  if (!isPage || childComponents.length === 0) return null
 
   return (
     <div style={{ position: 'relative', ...s.wire }}>
-      <div style={s.sampleBadge}>SAMPLE</div>
-
-      {isPage && childComponents.length > 0 && (
-        <div style={{ display: 'flex', gap: 4, marginBottom: 12 }}>
-          <button
-            onClick={() => setViewMode('preview')}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 5,
-              padding: '5px 12px', borderRadius: 6, fontSize: 11, fontWeight: 500,
-              border: '1px solid var(--border)', cursor: 'pointer',
-              background: viewMode === 'preview' ? 'var(--accent)' : 'var(--bg-secondary)',
-              color: viewMode === 'preview' ? '#000' : 'var(--text-secondary)',
-            }}
-          >
-            <Eye size={12} /> Preview
-          </button>
-          <button
-            onClick={() => setViewMode('tree')}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 5,
-              padding: '5px 12px', borderRadius: 6, fontSize: 11, fontWeight: 500,
-              border: '1px solid var(--border)', cursor: 'pointer',
-              background: viewMode === 'tree' ? 'var(--accent)' : 'var(--bg-secondary)',
-              color: viewMode === 'tree' ? '#000' : 'var(--text-secondary)',
-            }}
-          >
-            <Network size={12} /> Component Tree
-          </button>
-        </div>
-      )}
-
-      {isPage && viewMode === 'tree' && childComponents.length > 0 ? (
-        <ComponentTreeCanvas component={component} childComponents={childComponents} onNodeClick={onComponentClick} />
-      ) : isPage && renderPage ? (
-        <div>
-          {renderPage(childComponents)}
-          {childComponents.length > 0 && (
-            <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px solid var(--border)' }}>
-              <div style={{ ...s.label, marginBottom: 8 }}>Embedded Components</div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                {childComponents.map(ch => (
-                  <ChildComponentChip key={ch.id} name={ch.name} type={ch.type} status={ch.status} onClick={() => onComponentClick?.(ch.id)} />
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      ) : renderComponent ? (
-        renderComponent()
-      ) : (
-        <div style={{ textAlign: 'center', padding: 16, color: 'var(--text-muted)', fontSize: 12 }}>
-          <Layers size={24} style={{ opacity: 0.3, marginBottom: 8 }} />
-          <div>{component.name}</div>
-          <div style={{ fontSize: 10 }}>Preview not yet designed</div>
-        </div>
-      )}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 12 }}>
+        <Network size={12} style={{ color: 'var(--text-muted)' }} />
+        <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)' }}>Component Tree</span>
+      </div>
+      <ComponentTreeCanvas component={component} childComponents={childComponents} onNodeClick={onComponentClick} />
     </div>
   )
 }

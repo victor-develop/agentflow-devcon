@@ -37,6 +37,7 @@ export type DisplayHint =
   | 'block'
   | 'link'
   | 'iframe-preview'
+  | 'preview'
   | 'code'
   | 'color-swatch'
   | 'metric'
@@ -128,6 +129,10 @@ export type WSMessage =
   | { type: 'flow:updated' }
   | { type: 'chat:chunk'; text: string }
   | { type: 'chat:done' }
+  | { type: 'chat:activity'; family: ChatEventFamily; phase: string; content: string; toolName?: string }
+  | { type: 'file:changed'; filePath: string; changeType: 'add' | 'change' | 'unlink' }
+
+export type ChatEventFamily = 'tool' | 'reasoning' | 'plan' | 'file' | 'status' | 'error'
 
 // ── API response types ──
 
