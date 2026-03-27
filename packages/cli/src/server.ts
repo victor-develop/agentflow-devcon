@@ -177,6 +177,54 @@ interface ChatMessage {
   content: string
 }
 
+/* ── Per-process guides: what relations are expected ── */
+
+const processGuides: Record<string, string> = {
+  components: `When creating a design component:
+1. Create the item YAML at .agentflow/lanes/design/processes/components/items/COMP-NNN.yaml
+2. ALWAYS create a relation file linking the component to its parent story:
+   .agentflow/relations/storyN-implements-compN.yaml with:
+   from: STORY-NNN
+   to: COMP-NNN
+   type: implements
+   notes: "brief description"
+3. If the component is a child of a page component, note the parent in a field or relation.
+Without the relation, the component won't appear under its story in the UI.`,
+
+  stories: `When creating a story:
+1. Create the item YAML at .agentflow/lanes/define/processes/stories/items/STORY-NNN.yaml
+2. ALWAYS create a relation file linking the story to its parent PRD:
+   .agentflow/relations/prdN-contains-storyN.yaml with:
+   from: PRD-NNN
+   to: STORY-NNN
+   type: contains
+Without the relation, the story won't appear under its PRD.`,
+
+  e2e: `When creating a test case:
+1. Create the item YAML at .agentflow/lanes/develop/processes/e2e/items/E2E-NNN.yaml
+2. ALWAYS create a relation file linking the test to its story:
+   .agentflow/relations/e2eN-tests-storyN.yaml with:
+   from: E2E-NNN
+   to: STORY-NNN
+   type: tests`,
+
+  prd: `When creating a PRD:
+1. Create the item YAML at .agentflow/lanes/define/processes/prd/items/PRD-NNN.yaml
+2. ALWAYS create a relation file linking the PRD to its problem:
+   .agentflow/relations/probN-drives-prdN.yaml with:
+   from: PROB-NNN
+   to: PRD-NNN
+   type: drives`,
+
+  contracts: `When creating an API contract:
+1. Create the item YAML at .agentflow/lanes/design/processes/contracts/items/API-NNN.yaml
+2. ALWAYS create a relation file linking the contract to its story:
+   .agentflow/relations/storyN-specifies-apiN.yaml with:
+   from: STORY-NNN
+   to: API-NNN
+   type: specifies`,
+}
+
 function buildSystemPrompt(
   processId: string,
   project: ParsedProject,
@@ -202,9 +250,48 @@ function buildSystemPrompt(
     parts.push(`\nExisting items (${items.length}):\n${summary}`)
   }
 
+  // Relation rules
+  parts.push(`\n## CRITICAL: Relations`)
+  parts.push(`Items are linked via relation YAML files in .agentflow/relations/.`)
+  parts.push(`Each relation file has: from, to, type, and optional notes.`)
+  parts.push(`Relation types: contains, drives, implements, specifies, tests.`)
+  parts.push(`File naming: <source>-<type>-<target>.yaml (e.g. story7-implements-comp1.yaml)`)
+  parts.push(`\n**You MUST create relation files whenever you create an item.** Without them, cross-references in the UI will be broken.`)
+
+  // Process-specific guide
+  const guide = processGuides[processId]
+  if (guide) {
+    parts.push(`\n## Checklist for "${processId}"\n${guide}`)
+  }
+
+  // Show existing relations for context
+  const relSummary: string[] = []
+  for (const [, entityMap2] of project.items) {
+    for (const [itemId] of entityMap2) {
+      const outgoing = project.relations.filter(r => r.from === itemId)
+      const incoming = project.relations.filter(r => r.to === itemId)
+      for (const r of outgoing) relSummary.push(`${r.from} --${r.type}--> ${r.to}`)
+      for (const r of incoming) relSummary.push(`${r.from} --${r.type}--> ${r.to}`)
+    }
+  }
+  if (relSummary.length > 0) {
+    const unique = [...new Set(relSummary)]
+    parts.push(`\nExisting relations:\n${unique.join('\n')}`)
+  }
+
+  // Next ID hint
+  if (items.length > 0 && schema) {
+    const prefix = (schema.entity ?? processId).toUpperCase()
+    const maxNum = items.reduce((max, it) => {
+      const m = String(it.id).match(/(\d+)$/)
+      return m ? Math.max(max, parseInt(m[1], 10)) : max
+    }, 0)
+    parts.push(`\nNext ID: ${prefix}-${String(maxNum + 1).padStart(3, '0')}`)
+  }
+
   parts.push(
-    `\nKeep responses concise. When the user asks to create/update/delete items, ` +
-    `describe the YAML changes needed. If the user asks a question, answer it directly.`
+    `\nKeep responses concise. When creating/updating/deleting items, ` +
+    `make the YAML changes directly. Always verify you've created all required relation files.`
   )
 
   return parts.join('\n')
