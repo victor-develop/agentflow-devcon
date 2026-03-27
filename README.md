@@ -1,101 +1,117 @@
 # AgentFlow Dev Console
 
-An AI-first development workflow console that orchestrates the full software lifecycle — from problem definition through verification — in a structured, visual interface.
+A schema-driven, AI-agent-first development console that turns a folder of YAML files into a full visual workflow — from problem definition through verification.
 
-**[Live Demo →](https://victor-develop.github.io/agentflow-devcon/)**
+**[Live Demo (mock data) →](https://victor-develop.github.io/agentflow-devcon/)**
 
 ![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6?logo=typescript&logoColor=white)
 ![Vite](https://img.shields.io/badge/Vite-8-646CFF?logo=vite&logoColor=white)
 ![Deploy](https://img.shields.io/github/actions/workflow/status/victor-develop/agentflow-devcon/deploy.yml?label=deploy)
 
-## What is this?
+## How it works
 
-AgentFlow Dev Console provides a structured kanban-style workflow for AI-assisted software development. It breaks the dev lifecycle into **4 phases / 11 steps**, each with dedicated views, data models, and an integrated AI chat panel.
+Point the CLI at any project that has a `.agentflow/` directory. The console reads your YAML schemas, items, and relations, serves a live UI, and watches for file changes in real time.
+
+```bash
+npx agentflow-devcon /path/to/your-project
+# → http://localhost:4170
+```
+
+All data lives in plain YAML files — no database, no lock-in. The embedded AI agent (Claude CLI) edits those files directly, so your workflow state is always just files in a repo.
 
 ```
-Define          Design            Develop             Verify
-─────────────   ──────────────    ──────────────────  ──────────────────
-1. Problems     4. Design System  6. API Contracts    9.  Test Harness
-2. PRD          5. Components     7. Prototype        10. Production Code
-3. Stories                        8. E2E Tests        11. Verification
+your-project/
+└── .agentflow/
+    ├── flow.yaml                     # lane/phase topology
+    ├── lanes/
+    │   ├── define/processes/
+    │   │   ├── problem/
+    │   │   │   ├── schema.yaml       # entity schema (fields, types, display hints)
+    │   │   │   └── items/
+    │   │   │       ├── PROB-001.yaml
+    │   │   │       └── ...
+    │   │   ├── prd/...
+    │   │   └── stories/...
+    │   ├── design/processes/
+    │   │   ├── components/...
+    │   │   └── contracts/...
+    │   └── develop/processes/...
+    └── relations/                    # cross-entity links (from/to/type)
+        ├── prob1-drives-prd1.yaml
+        ├── prd1-contains-story1.yaml
+        └── ...
 ```
 
 ## Features
 
-- **11 Workflow Views** — Each step has a dedicated view with search, filter, sort, pagination, and expanded/compact card modes
-- **Context-Aware AI Chat** — Drawer-style chat panel with step-specific hints and mock agent conversations
-- **Cross-View Navigation** — Click a story's component to jump directly to the Components view with it highlighted
-- **Commit History** — Version timeline with field-level diffs (from → to) integrated into every entity
-- **API Contract Browser** — REST & GraphQL endpoint schemas with request/response previews
-- **Component Preview** — Design component cards with type, status, and Figma link support
-- **Design System Viewer** — Color tokens, typography scale, and spacing documentation
-- **Dark Theme** — Native dark UI with CSS custom properties and phase-colored accents
+### Workflow views
+- **11 step views** across 4 phases (Define → Design → Develop → Verify), each with search, filter, sort, pagination, and expanded/compact modes
+- **Cross-view navigation** — click a story's component ID to jump to Components view, auto-paginating to the correct page and highlighting the item
+- **Schema-driven rendering** — fields render based on `display` hints in `schema.yaml` (badge, tag, text, list, preview, etc.)
+- **Inline HTML preview** — components with a `preview` display hint render live HTML in sandboxed iframes
 
-## Tech Stack
+### Agent chat
+- **Embedded Claude CLI** — chat panel spawns `claude` with `--output-format stream-json`, giving real-time visibility into agent thinking
+- **Activity timeline** — tool calls, reasoning, and status events stream inline in the chat as collapsible activity rows
+- **Process-aware prompts** — system prompt includes the current schema, existing items, relation rules, and next-ID hints so the agent creates complete, linked entities
+- **Persistent sessions** — chat history saved to localStorage per workflow step, with a session switcher to create/switch/delete conversations
 
-| Layer | Choice |
-|-------|--------|
-| Framework | React 19 |
-| Language | TypeScript 5.9 |
-| Bundler | Vite 8 |
-| Icons | Lucide React |
-| Styling | Pure CSS (custom properties) |
-| Fonts | Inter + JetBrains Mono |
-| Deployment | GitHub Pages via Actions |
+### Live sync
+- **File watcher** — chokidar watches `.agentflow/` for YAML changes and pushes `item:created`, `item:updated`, `item:deleted`, `schema:updated` events over WebSocket
+- **Field-level diffs** — updated items include a `changes` array showing which fields changed (from → to)
+- **Instant preview refresh** — iframe previews remount when their content changes
 
-No external state management, no CSS framework — intentionally minimal dependencies.
+### Other
+- **File explorer** — browse and read any file in `.agentflow/` from the UI (floating panel with syntax highlighting)
+- **Commit history** — version timeline with field-level diffs per entity
+- **Relation graph** — items show their incoming/outgoing relations with clickable cross-links
+- **Dark theme** — native dark UI with CSS custom properties and phase-colored accents
+
+## Architecture
+
+pnpm monorepo with three packages:
+
+| Package | Description |
+|---------|-------------|
+| `packages/shared` | TypeScript types, schemas, WS message definitions |
+| `packages/cli` | Hono server + chokidar watcher + Claude CLI bridge |
+| `packages/web` | React 19 SPA (Vite, pure CSS, Lucide icons) |
+
+The CLI bundles the web dist and serves it as static files — one process, no separate dev server needed.
 
 ## Getting Started
 
+### With an existing `.agentflow/` project
+
 ```bash
-# Clone
+npx agentflow-devcon /path/to/your-project
+```
+
+### Development
+
+```bash
 git clone https://github.com/victor-develop/agentflow-devcon.git
 cd agentflow-devcon
+pnpm install
+pnpm build
 
-# Install
-npm install
-
-# Dev server (http://localhost:5173)
-npm run dev
-
-# Production build
-npm run build
-
-# Preview build locally
-npm run preview
+# Run against a project
+node packages/cli/dist/index.js /path/to/your-project
 ```
 
-## Project Structure
+### Agent chat requires Claude CLI
 
-```
-src/
-├── components/          # Reusable UI (ChatPanel, Sidebar, ListToolbar, etc.)
-├── views/               # 11 workflow step views
-├── App.tsx              # Layout & routing
-├── NavigationContext.tsx # Cross-view navigation state
-├── types.ts             # TypeScript interfaces
-├── mockData.ts          # Sample data (notification-routing project)
-├── mockCommits.ts       # Mock version history
-└── index.css            # Design tokens & theme
+The chat panel shells out to `claude` CLI. Install it and ensure it's on your PATH:
+
+```bash
+# https://docs.anthropic.com/en/docs/claude-code
+npm install -g @anthropic-ai/claude-code
 ```
 
-## Mock Data
+## Mock demo
 
-The console ships with realistic mock data modeling a **notification routing** system:
-
-- 8 problems, 6 PRDs, 25 stories
-- ~40 design components, ~50 test cases, ~30 code modules
-- 29 API contracts (REST + GraphQL)
-- Full commit history across all entities
-
-## Roadmap
-
-- [ ] Backend integration (replace mock data with API)
-- [ ] Real AI agent integration via chat panel
-- [ ] Authentication & collaboration
-- [ ] Export (PRDs, test plans, code stubs)
-- [ ] Real-time sync
+The [GitHub Pages demo](https://victor-develop.github.io/agentflow-devcon/) runs in mock mode with hardcoded data modeling a **multi-channel OMS (Order Management System)** project — problems, PRDs, stories, components, contracts, tests, and full commit history.
 
 ## License
 
