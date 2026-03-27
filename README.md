@@ -82,36 +82,118 @@ The CLI bundles the web dist and serves it as static files — one process, no s
 
 ## Getting Started
 
-### With an existing `.agentflow/` project
+### Prerequisites
+
+The agent chat panel uses Claude CLI under the hood:
 
 ```bash
-npx agentflow-devcon /path/to/your-project
+npm install -g @anthropic-ai/claude-code
 ```
 
-### Development
+### Option A: Install from source (npm not yet published)
 
 ```bash
 git clone https://github.com/victor-develop/agentflow-devcon.git
 cd agentflow-devcon
-pnpm install
-pnpm build
+pnpm install && pnpm build
 
-# Run against a project
-node packages/cli/dist/index.js /path/to/your-project
+# Link globally so you can use it anywhere
+cd packages/cli && npm link
 ```
 
-### Agent chat requires Claude CLI
-
-The chat panel shells out to `claude` CLI. Install it and ensure it's on your PATH:
+### Option B: Run directly without linking
 
 ```bash
-# https://docs.anthropic.com/en/docs/claude-code
-npm install -g @anthropic-ai/claude-code
+git clone https://github.com/victor-develop/agentflow-devcon.git
+cd agentflow-devcon
+pnpm install && pnpm build
+```
+
+Then use `node packages/cli/dist/index.js` wherever you'd use `agentflow-devcon` below.
+
+---
+
+### Scaffold a new project
+
+```bash
+# Create .agentflow/ in your project with all schemas + flow topology
+cd /path/to/your-project
+agentflow-devcon init
+
+# What it creates:
+# .agentflow/
+# ├── flow.yaml              ← workflow topology (4 phases, 11 steps)
+# ├── AGENTS.md              ← instructions for AI agents editing this project
+# ├── lanes/
+# │   ├── define/processes/
+# │   │   ├── problem/schema.yaml
+# │   │   ├── prd/schema.yaml
+# │   │   └── stories/schema.yaml
+# │   ├── design/processes/
+# │   │   ├── components/schema.yaml
+# │   │   ├── contracts/schema.yaml
+# │   │   └── design-system/schema.yaml
+# │   ├── develop/processes/
+# │   │   ├── prototype/schema.yaml
+# │   │   └── e2e/schema.yaml
+# │   └── verify/processes/
+# │       ├── harness/schema.yaml
+# │       ├── development/schema.yaml
+# │       └── verification/schema.yaml
+# └── relations/              ← (empty, populated as you create items)
+```
+
+### Launch the console
+
+```bash
+agentflow-devcon /path/to/your-project
+# → http://localhost:4170
+```
+
+### Use the agent chat to populate your project
+
+Once the console is running, open any workflow step and use the chat panel to create entities:
+
+> "Create a problem: users can't track orders across multiple sales channels"
+
+The agent will create the YAML item file **and** the relation files automatically. Changes appear in the UI in real time via file watching.
+
+### Typical workflow
+
+```
+1. Init        →  agentflow-devcon init
+2. Launch      →  agentflow-devcon .
+3. Define      →  Chat: "Add problem: ..." → "Create PRD for PROB-001" → "Break into stories"
+4. Design      →  Chat: "Add component OrderDashboard for STORY-001" → "Add API contract"
+5. Develop     →  Chat: "Create E2E test for STORY-001"
+6. Iterate     →  Edit YAML manually or via chat — UI updates live
+```
+
+Each step's chat is process-aware: it knows the schema, existing items, relations, and the next available ID. You can also edit the YAML files directly with any editor or AI tool — the console watches for changes.
+
+### Using with Claude Code directly
+
+The scaffolded `.agentflow/AGENTS.md` contains instructions for any AI agent (Claude Code, Cursor, etc.) to understand the file structure. You can point Claude Code at your project and it will know how to create items and relations correctly:
+
+```bash
+cd /path/to/your-project
+claude  # Claude Code will read AGENTS.md automatically
 ```
 
 ## Mock demo
 
 The [GitHub Pages demo](https://victor-develop.github.io/agentflow-devcon/) runs in mock mode with hardcoded data modeling a **multi-channel OMS (Order Management System)** project — problems, PRDs, stories, components, contracts, tests, and full commit history.
+
+## Contributing
+
+```bash
+git clone https://github.com/victor-develop/agentflow-devcon.git
+cd agentflow-devcon
+pnpm install && pnpm build
+
+# Run against the example OMS project (if available)
+node packages/cli/dist/index.js /path/to/agentflow-oms
+```
 
 ## License
 
