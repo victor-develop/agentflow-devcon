@@ -1,5 +1,7 @@
 # AgentFlow Dev Console
 
+[中文文档](./README.ZH.md)
+
 A schema-driven, AI-agent-first development console that turns a folder of YAML files into a full visual workflow — from problem definition through verification.
 
 **[Live Demo (mock data) →](https://victor-develop.github.io/agentflow-devcon/)**
