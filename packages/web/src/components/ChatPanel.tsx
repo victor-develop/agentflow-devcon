@@ -81,8 +81,9 @@ const contextHints: Record<WorkflowStepId, string> = {
 }
 
 /* ── Mock fallback for demo mode ── */
-const mockRespond = (step: string) =>
-  `This is a prototype — in production, this would route to your configured AI agent with full context of the **${step}** workflow state.`
+const MOCK_NOTICE = `This is a demo with mock data. The agent chat requires a local Claude CLI to function.\n这是一个使用模拟数据的演示。Agent 对话需要本地安装 Claude CLI 才能使用。\n\n**Get started / 开始使用:**\n\`\`\`\ngit clone https://github.com/victor-develop/agentflow-devcon.git\ncd agentflow-devcon && pnpm install && pnpm build\ncd packages/cli && npm link\nagentflow-devcon init -p "your project description"\nagentflow-devcon .\n\`\`\``
+
+const mockRespond = (_step: string) => MOCK_NOTICE
 
 /* ── Session persistence ─────────────────────────── */
 
@@ -107,7 +108,10 @@ function saveSessions(sessions: ChatSession[]) {
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions)) } catch { /* quota */ }
 }
 
+const MOCK_SYSTEM_HINT = 'Demo mode — agent chat is simulated. Clone the repo and run locally for full AI features.\n演示模式 — 对话为模拟。克隆仓库并在本地运行以使用完整 AI 功能。'
+
 function createSession(step: WorkflowStepId): ChatSession {
+  const isMock = DATA_MODE === 'mock'
   return {
     id: `s-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
     name: new Date().toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
@@ -116,7 +120,7 @@ function createSession(step: WorkflowStepId): ChatSession {
     messages: [{
       id: 'sys-0',
       role: 'system',
-      content: contextHints[step],
+      content: isMock ? MOCK_SYSTEM_HINT : contextHints[step],
       timestamp: '',
     }],
   }

@@ -26,8 +26,9 @@ const program = new Command()
 program
   .command('init [path]')
   .description('Initialize .agentflow scaffold in a project')
-  .action(async (path = '.') => {
-    await scaffoldAgentflow(resolve(path))
+  .option('-p, --prompt <prompt>', 'auto-populate project with AI using this description')
+  .action(async (path = '.', opts: { prompt?: string }) => {
+    await scaffoldAgentflow(resolve(path), opts.prompt)
   })
 
 program.parse()

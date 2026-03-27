@@ -118,32 +118,16 @@ Then use `node packages/cli/dist/index.js` wherever you'd use `agentflow-devcon`
 ### Scaffold a new project
 
 ```bash
-# Create .agentflow/ in your project with all schemas + flow topology
 cd /path/to/your-project
+
+# Option 1: Empty scaffold (schemas only, no data)
 agentflow-devcon init
 
-# What it creates:
-# .agentflow/
-# ├── flow.yaml              ← workflow topology (4 phases, 11 steps)
-# ├── AGENTS.md              ← instructions for AI agents editing this project
-# ├── lanes/
-# │   ├── define/processes/
-# │   │   ├── problem/schema.yaml
-# │   │   ├── prd/schema.yaml
-# │   │   └── stories/schema.yaml
-# │   ├── design/processes/
-# │   │   ├── components/schema.yaml
-# │   │   ├── contracts/schema.yaml
-# │   │   └── design-system/schema.yaml
-# │   ├── develop/processes/
-# │   │   ├── prototype/schema.yaml
-# │   │   └── e2e/schema.yaml
-# │   └── verify/processes/
-# │       ├── harness/schema.yaml
-# │       ├── development/schema.yaml
-# │       └── verification/schema.yaml
-# └── relations/              ← (empty, populated as you create items)
+# Option 2: AI-powered scaffold — Claude populates the project for you
+agentflow-devcon init -p "Build an order management system for multi-channel e-commerce"
 ```
+
+With `-p`, the CLI creates the directory structure then calls Claude CLI to auto-generate Problems, PRDs, Stories, Components, Contracts, E2E tests, and all their relations based on your description.
 
 ### Launch the console
 

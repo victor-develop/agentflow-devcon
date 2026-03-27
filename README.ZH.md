@@ -118,32 +118,16 @@ pnpm install && pnpm build
 ### 初始化新项目
 
 ```bash
-# 在你的项目中创建 .agentflow/ 目录，包含全部 schema 和工作流拓扑
 cd /path/to/your-project
+
+# 方式 1：空项目初始化（只有 schema，没有数据）
 agentflow-devcon init
 
-# 创建的内容：
-# .agentflow/
-# ├── flow.yaml              ← 工作流拓扑（4 阶段，11 步骤）
-# ├── AGENTS.md              ← AI Agent 编辑此项目的说明文档
-# ├── lanes/
-# │   ├── define/processes/
-# │   │   ├── problem/schema.yaml
-# │   │   ├── prd/schema.yaml
-# │   │   └── stories/schema.yaml
-# │   ├── design/processes/
-# │   │   ├── components/schema.yaml
-# │   │   ├── contracts/schema.yaml
-# │   │   └── design-system/schema.yaml
-# │   ├── develop/processes/
-# │   │   ├── prototype/schema.yaml
-# │   │   └── e2e/schema.yaml
-# │   └── verify/processes/
-# │       ├── harness/schema.yaml
-# │       ├── development/schema.yaml
-# │       └── verification/schema.yaml
-# └── relations/              ← （空目录，创建实体时自动填充）
+# 方式 2：AI 驱动的初始化 — Claude 根据你的描述自动填充项目
+agentflow-devcon init -p "构建一个多渠道电商订单管理系统"
 ```
+
+使用 `-p` 时，CLI 会先创建目录结构，然后调用 Claude CLI 根据你的描述自动生成 Problems、PRD、Stories、Components、Contracts、E2E 测试等实体，并建立它们之间的关联。
 
 ### 启动控制台
 
